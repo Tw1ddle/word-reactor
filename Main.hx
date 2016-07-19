@@ -19,7 +19,6 @@ import nape.phys.BodyType;
 import nape.shape.Circle;
 import nape.shape.Polygon;
 import nape.space.Space;
-import js.html.SpanElement;
 
 // Automatic HTML code completion, you need to point these to your debug/release HTML
 #if debug
@@ -84,6 +83,7 @@ class Main {
 	public static inline var BALL_CONTAINER_CLASSNAME:String = "ballContainer";
 	public static inline var CONTENT_WRAPPER_CLASSNAME:String = "contentWrapper";
 	public static inline var INNER_CONTENT_CLASSNAME:String = "innerContent";
+	private static inline var FRAME_TIMEOUT_TIME_SECONDS:Int = 3;
 	private static inline var GRAVITY_STRENGTH:Int = 600; // 600 pixels/units per second
 	
 	// Groups of related word generation topics
@@ -92,6 +92,7 @@ class Main {
 		["American Forenames", "Italian Forenames", "Japanese Forenames", "Swedish Forenames", "Tolkienesque Forenames"],
 		["English Towns", "German Towns", "Japanese Cities", "Swiss Cities"]
 	];
+	private static var backgroundTappingTopic = "Pokemon"; // The topic used to generate balls when tapping the background
 	
 	private var div:DivElement = cast Browser.document.getElementById(ID.simulation); // The div that contains the whole simulation
 	private var lastAnimationTime:Float = 0.0; // Last time from requestAnimationFrame
@@ -133,6 +134,16 @@ class Main {
 			bodies = napeSpace.bodiesUnderPoint(pointerPosition, null, bodies);
 			for (body in bodies) {
 				if (body.isDynamic()) {
+					
+					// Make the last selected ball the current topic ball if the user presses an empty space
+					try {
+						var userData = cast(body.userData.sprite, UserData);
+						if (userData.type == BallType.TOPIC) {
+							backgroundTappingTopic = userData.topic;
+						}
+					} catch (e:Dynamic) {
+					}
+					
 					napeHand.body2 = body;
 					napeHand.anchor2 = body.worldPointToLocal(pointerPosition, true);
 					napeHand.active = true;
@@ -193,27 +204,24 @@ class Main {
 		var dt:Float = (time - lastAnimationTime) * 0.001; // Seconds
 		lastAnimationTime = time;
 		
-		// TODO handle big dt?
+		if (dt > FRAME_TIMEOUT_TIME_SECONDS) {
+			Browser.window.requestAnimationFrame(animate); // If the last frame rendered a long time ago, the user probably switched tabs for a bit - so pass small dt and render again (avoids physics weirdness)
+			return;
+		}
 		
 		napeSpace.step(dt, 10, 10); // Update simulation
 		
 		if (napeHand.active) {
 			napeHand.body2.angularVel *= 0.95; // Diminish the currently held ball's angular velocity
 		} else if (isPointerDown) {
-			var bodies = new BodyList(); // TODO add stream of words (and decorations) to the location until release
-			bodies = napeSpace.bodiesUnderPoint(pointerPosition, null, bodies);
-			var shouldSpawn = true;
-			for (body in bodies) {
-				if (body.isDynamic()) {
-					napeHand.body2 = body;
-					napeHand.anchor2 = body.worldPointToLocal(pointerPosition, true);
-					napeHand.active = true;
-					shouldSpawn = false;
-				}
-			}
-			if (shouldSpawn) {
-				var size = Std.int(25 + Math.random() * 50);
+			// TODO add stream of words (and decorations) to the location until release
+			var size = Std.int(25 + Math.random() * 50);
+			
+			var decorativeBall:Bool = Math.random() < 0.15;
+			if (decorativeBall) {
 				decorativeBalls.add(createDecorativeBall(size, pointerPosition.x, pointerPosition.y));
+			} else {
+				wordBalls.add(createWordBall(size, pointerPosition.x, pointerPosition.y, backgroundTappingTopic));
 			}
 		}
 		
@@ -249,7 +257,7 @@ class Main {
 		napeHand = new PivotJoint(napeSpace.world, null, Vec2.weak(), Vec2.weak());
 		napeHand.active = false;
 		napeHand.stiff = false;
-		napeHand.maxForce = 500000;
+		napeHand.maxForce = 1500000;
 		napeHand.space = napeSpace;
 		worldBorder = createWorldBorder(0, 0, Browser.window.innerWidth, Browser.window.innerHeight, 100);
 		worldBorder.space = napeSpace;
@@ -340,7 +348,7 @@ class Main {
 	/**
 	 * Creates a ball that contains a generated word
 	 */
-	private inline function createWordBall(size:Int, startX:Int, startY:Int, topic:String):Body {
+	private inline function createWordBall(size:Int, startX:Float, startY:Float, topic:String):Body {
 		var content = createWrappedContent();
 		
 		var circleContainer = createVisualBall(size, startX, startY, content);
@@ -434,7 +442,7 @@ class Main {
 	/**
 	 * Helper function for creating a canvas visual of a Nape ball
 	 */
-	private inline function createVisualBall(size:Int, startX:Int, startY:Int, innerBody:DivElement, useCanvas:Bool = true, ?fillTechnique:CanvasRenderingContext2D->Int->Int->Void):DivElement {
+	private inline function createVisualBall(size:Int, startX:Float, startY:Float, innerBody:DivElement, useCanvas:Bool = true, ?fillTechnique:CanvasRenderingContext2D->Int->Int->Void):DivElement {
 		var container = Browser.document.createDivElement();
 		container.className = BALL_CONTAINER_CLASSNAME;
 		container.style.width = Std.string(size) + "px";

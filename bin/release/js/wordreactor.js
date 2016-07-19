@@ -51,7 +51,7 @@ var UserData = function(container,topic,type) {
 	var words = Reflect.field(TrainingDatas,topic);
 	if(!(words != null)) throw new js__$Boot_HaxeError("FAIL: words != null");
 	this.container = container;
-	this.set_text(words[Std["int"](Math.random() * words.length - 1)]);
+	if(type == 0) this.set_text(topic); else if(type == 1) this.set_text(words[Std["int"](Math.random() * words.length - 1)]);
 	this.topic = topic;
 	this.type = type;
 };
@@ -399,7 +399,7 @@ Main.prototype = {
 			if(ball.zpp_inner_i.userData == null) ball.zpp_inner_i.userData = { };
 			$r = ball.zpp_inner_i.userData;
 			return $r;
-		}(this))).sprite = new UserData(circleContainer,topic,0);
+		}(this))).sprite = new UserData(circleContainer,topic,1);
 		((function($this) {
 			var $r;
 			if(ball.zpp_inner_i.wrap_cbTypes == null) ball.zpp_inner_i.setupcbTypes();

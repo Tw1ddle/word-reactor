@@ -92,6 +92,18 @@ Main.prototype = {
 				_g1.zpp_critical = false;
 				body = _g1.zpp_inner.at(_g1.zpp_i++);
 				if(body.zpp_inner.type == 2) {
+					try {
+						var userData;
+						userData = js_Boot.__cast(((function($this) {
+							var $r;
+							if(body.zpp_inner_i.userData == null) body.zpp_inner_i.userData = { };
+							$r = body.zpp_inner_i.userData;
+							return $r;
+						}(this))).sprite , UserData);
+						if(userData.type == 0) Main.backgroundTappingTopic = userData.topic;
+					} catch( e ) {
+						if (e instanceof js__$Boot_HaxeError) e = e.val;
+					}
 					_g.napeHand.set_body2(body);
 					_g.napeHand.set_anchor2(body.worldPointToLocal(_g.pointerPosition,true));
 					_g.napeHand.set_active(true);
@@ -109,31 +121,31 @@ Main.prototype = {
 			_g.pointerPosition.setxy(x2,y2);
 			_g.napeHand.set_active(false);
 		};
-		window.document.addEventListener("mousedown",function(e) {
-			onPointerDown(e.clientX,e.clientY);
-			if(e.which == 3) _g.resetSimulation();
+		window.document.addEventListener("mousedown",function(e1) {
+			onPointerDown(e1.clientX,e1.clientY);
+			if(e1.which == 3) _g.resetSimulation();
 		},false);
-		window.document.addEventListener("mousemove",function(e1) {
-			onPointerMove(e1.clientX,e1.clientY);
+		window.document.addEventListener("mousemove",function(e2) {
+			onPointerMove(e2.clientX,e2.clientY);
 		},false);
-		window.document.addEventListener("mouseup",function(e2) {
-			onPointerUp(e2.clientX,e2.clientY);
+		window.document.addEventListener("mouseup",function(e3) {
+			onPointerUp(e3.clientX,e3.clientY);
 		},false);
-		window.document.addEventListener("touchstart",function(e3) {
-			onPointerDown(e3.touches[0].clientX,e3.touches[0].clientY);
+		window.document.addEventListener("touchstart",function(e4) {
+			onPointerDown(e4.touches[0].clientX,e4.touches[0].clientY);
 		},false);
-		window.document.addEventListener("touchmove",function(e4) {
-			onPointerMove(e4.touches[0].clientX,e4.touches[0].clientY);
+		window.document.addEventListener("touchmove",function(e5) {
+			onPointerMove(e5.touches[0].clientX,e5.touches[0].clientY);
 		},false);
-		window.document.addEventListener("touchend",function(e5) {
-			onPointerUp(e5.touches[0].clientX,e5.touches[0].clientY);
+		window.document.addEventListener("touchend",function(e6) {
+			onPointerUp(e6.touches[0].clientX,e6.touches[0].clientY);
 		},false);
 		window.addEventListener("resize",function() {
 		},false);
-		window.addEventListener("deviceorientation",function(e6) {
-			if(e6.beta != null) {
-				_g.napeGravity.set_x(Math.sin(e6.gamma * Math.PI / 180));
-				_g.napeGravity.set_y(Math.sin(Math.PI / 4 + e6.beta * Math.PI / 180));
+		window.addEventListener("deviceorientation",function(e7) {
+			if(e7.beta != null) {
+				_g.napeGravity.set_x(Math.sin(e7.gamma * Math.PI / 180));
+				_g.napeGravity.set_y(Math.sin(Math.PI / 4 + e7.beta * Math.PI / 180));
 			}
 		},false);
 		window.requestAnimationFrame($bind(this,this.animate));
@@ -141,38 +153,24 @@ Main.prototype = {
 	,animate: function(time) {
 		var dt = (time - this.lastAnimationTime) * 0.001;
 		this.lastAnimationTime = time;
+		if(dt > 3) {
+			window.requestAnimationFrame($bind(this,this.animate));
+			return;
+		}
 		this.napeSpace.step(dt,10,10);
 		if(this.napeHand.zpp_inner.active) {
 			var _g = this.napeHand.get_body2();
 			_g.set_angularVel(_g.zpp_inner.angvel * 0.95);
 		} else if(this.isPointerDown) {
-			var bodies = new nape_phys_BodyList();
-			bodies = this.napeSpace.bodiesUnderPoint(this.pointerPosition,null,bodies);
-			var shouldSpawn = true;
-			var _g1;
-			bodies.zpp_inner.valmod();
-			_g1 = nape_phys_BodyIterator.get(bodies);
-			while(_g1.hasNext()) {
-				var body;
-				_g1.zpp_critical = false;
-				body = _g1.zpp_inner.at(_g1.zpp_i++);
-				if(body.zpp_inner.type == 2) {
-					this.napeHand.set_body2(body);
-					this.napeHand.set_anchor2(body.worldPointToLocal(this.pointerPosition,true));
-					this.napeHand.set_active(true);
-					shouldSpawn = false;
-				}
-			}
-			if(shouldSpawn) {
-				var size = Std["int"](25 + Math.random() * 50);
-				this.decorativeBalls.add(this.createDecorativeBall(size,this.pointerPosition.get_x(),this.pointerPosition.get_y()));
-			}
+			var size = Std["int"](25 + Math.random() * 50);
+			var decorativeBall = Math.random() < 0.15;
+			if(decorativeBall) this.decorativeBalls.add(this.createDecorativeBall(size,this.pointerPosition.get_x(),this.pointerPosition.get_y())); else this.wordBalls.add(this.createWordBall(size,this.pointerPosition.get_x(),this.pointerPosition.get_y(),Main.backgroundTappingTopic));
 		}
-		var _g2 = this.wordBalls.iterator();
-		while(_g2.hasNext()) {
+		var _g1 = this.wordBalls.iterator();
+		while(_g1.hasNext()) {
 			var ball;
-			_g2.zpp_critical = false;
-			ball = _g2.zpp_inner.at(_g2.zpp_i++);
+			_g1.zpp_critical = false;
+			ball = _g1.zpp_inner.at(_g1.zpp_i++);
 			this.updateBallStyle(((function($this) {
 				var $r;
 				if(ball.zpp_inner_i.userData == null) ball.zpp_inner_i.userData = { };
@@ -190,11 +188,11 @@ Main.prototype = {
 				return $r;
 			}(this))).get_y(),ball.zpp_inner.rot);
 		}
-		var _g3 = this.topicBalls.iterator();
-		while(_g3.hasNext()) {
+		var _g2 = this.topicBalls.iterator();
+		while(_g2.hasNext()) {
 			var ball1;
-			_g3.zpp_critical = false;
-			ball1 = _g3.zpp_inner.at(_g3.zpp_i++);
+			_g2.zpp_critical = false;
+			ball1 = _g2.zpp_inner.at(_g2.zpp_i++);
 			this.updateBallStyle(((function($this) {
 				var $r;
 				if(ball1.zpp_inner_i.userData == null) ball1.zpp_inner_i.userData = { };
@@ -212,11 +210,11 @@ Main.prototype = {
 				return $r;
 			}(this))).get_y(),ball1.zpp_inner.rot);
 		}
-		var _g4 = 0;
+		var _g3 = 0;
 		var _g11 = [this.instructionsBall,this.githubBall,this.twitterBall];
-		while(_g4 < _g11.length) {
-			var ball2 = _g11[_g4];
-			++_g4;
+		while(_g3 < _g11.length) {
+			var ball2 = _g11[_g3];
+			++_g3;
 			if(ball2 != null) this.updateBallStyle(((function($this) {
 				var $r;
 				if(ball2.zpp_inner_i.userData == null) ball2.zpp_inner_i.userData = { };
@@ -234,11 +232,11 @@ Main.prototype = {
 				return $r;
 			}(this))).get_y(),ball2.zpp_inner.rot);
 		}
-		var _g5 = this.decorativeBalls.iterator();
-		while(_g5.hasNext()) {
+		var _g4 = this.decorativeBalls.iterator();
+		while(_g4.hasNext()) {
 			var ball3;
-			_g5.zpp_critical = false;
-			ball3 = _g5.zpp_inner.at(_g5.zpp_i++);
+			_g4.zpp_critical = false;
+			ball3 = _g4.zpp_inner.at(_g4.zpp_i++);
 			this.updateBallStyle(((function($this) {
 				var $r;
 				if(ball3.zpp_inner_i.userData == null) ball3.zpp_inner_i.userData = { };
@@ -267,7 +265,7 @@ Main.prototype = {
 		this.napeHand = new nape_constraint_PivotJoint(this.napeSpace.zpp_inner.__static,null,nape_geom_Vec2.get(0,0,true),nape_geom_Vec2.get(0,0,true));
 		this.napeHand.set_active(false);
 		this.napeHand.set_stiff(false);
-		this.napeHand.set_maxForce(500000);
+		this.napeHand.set_maxForce(1500000);
 		this.napeHand.set_space(this.napeSpace);
 		this.worldBorder = this.createWorldBorder(0,0,window.innerWidth,window.innerHeight,100);
 		this.worldBorder.set_space(this.napeSpace);
@@ -794,6 +792,9 @@ js_Boot.__instanceof = function(o,cl) {
 		if(cl == Enum && o.__ename__ != null) return true;
 		return o.__enum__ == cl;
 	}
+};
+js_Boot.__cast = function(o,t) {
+	if(js_Boot.__instanceof(o,t)) return o; else throw new js__$Boot_HaxeError("Cannot cast " + Std.string(o) + " to " + Std.string(t));
 };
 js_Boot.__nativeClassName = function(o) {
 	var name = js_Boot.__toStr.call(o).slice(8,-1);
@@ -56999,8 +57000,10 @@ Main.TWITTER_URL = "https://twitter.com/Sam_Twidale";
 Main.BALL_CONTAINER_CLASSNAME = "ballContainer";
 Main.CONTENT_WRAPPER_CLASSNAME = "contentWrapper";
 Main.INNER_CONTENT_CLASSNAME = "innerContent";
+Main.FRAME_TIMEOUT_TIME_SECONDS = 3;
 Main.GRAVITY_STRENGTH = 600;
 Main.topicGroups = [["Animals","Fish","Pokemon"],["American Forenames","Italian Forenames","Japanese Forenames","Swedish Forenames","Tolkienesque Forenames"],["English Towns","German Towns","Japanese Cities","Swiss Cities"]];
+Main.backgroundTappingTopic = "Pokemon";
 js_Boot.__toStr = {}.toString;
 nape_Config.epsilon = 1e-8;
 nape_Config.fluidAngularDragFriction = 2.5;
