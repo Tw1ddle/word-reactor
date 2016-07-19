@@ -34,6 +34,8 @@ The [markov-namegen haxelib](http://lib.haxe.org/p/markov-namegen) uses [Markov 
 
 The physics simulation is made using [Nape](https://github.com/deltaluca/nape), a 2D rigid body physics engine for Haxe. When balls containing topic words collide, balls are added to the simulation that contain new words generated using the training data for those topics.
 
+The visualization is rendered using HTML5 with text, images and canvas elements, using absolute positioning for the balls. This is all kept in sync with the Nape physics simulation in the requestAnimationFrame loop.
+
 ## Notes ##
 * Inspired by the [ball pool](http://mrdoob.com/projects/chromeexperiments/ball-pool/) experiment by [Ricardo Cabello](https://twitter.com/mrdoob) and the sample projects from [Nape](https://github.com/deltaluca/nape) by [Luca Deltodesco](https://github.com/deltaluca).
 * Many of the concepts used for the generator were suggested in [this article](http://www.roguebasin.com/index.php?title=Names_from_a_high_order_Markov_Process_and_a_simplified_Katz_back-off_scheme) by [Jeffrey Lund](https://github.com/jlund3).

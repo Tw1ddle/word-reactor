@@ -41,17 +41,42 @@ HxOverrides.iter = function(a) {
 		return this.arr[this.cur++];
 	}};
 };
+var List = function() {
+	this.length = 0;
+};
+List.__name__ = true;
+List.prototype = {
+	add: function(item) {
+		var x = [item];
+		if(this.h == null) this.h = x; else this.q[1] = x;
+		this.q = x;
+		this.length++;
+	}
+	,pop: function() {
+		if(this.h == null) return null;
+		var x = this.h[0];
+		this.h = this.h[1];
+		if(this.h == null) this.q = null;
+		this.length--;
+		return x;
+	}
+	,isEmpty: function() {
+		return this.h == null;
+	}
+	,__class__: List
+};
 var ID = function() { };
 ID.__name__ = true;
 var TrainingDatas = function() { };
 TrainingDatas.__name__ = true;
-var UserData = function(container,topic,type) {
+var UserData = function(container,topic,text,type) {
 	if(!(container != null)) throw new js__$Boot_HaxeError("FAIL: container != null");
 	if(!(topic != null)) throw new js__$Boot_HaxeError("FAIL: topic != null");
-	var words = Reflect.field(TrainingDatas,topic);
-	if(!(words != null)) throw new js__$Boot_HaxeError("FAIL: words != null");
 	this.container = container;
-	if(type == 0) this.set_text(topic); else if(type == 1) this.set_text(words[Std["int"](Math.random() * words.length - 1)]);
+	if(type == 0) this.set_text(topic); else {
+		if(!(text != null)) throw new js__$Boot_HaxeError("FAIL: text != null");
+		this.set_text(text);
+	}
 	this.topic = topic;
 	this.type = type;
 };
@@ -65,7 +90,17 @@ UserData.prototype = {
 	}
 	,__class__: UserData
 };
+var GeneratorTriePair = function(generator,trie) {
+	this.generator = generator;
+	this.trie = trie;
+};
+GeneratorTriePair.__name__ = true;
+GeneratorTriePair.prototype = {
+	__class__: GeneratorTriePair
+};
 var Main = function() {
+	this.wordBallPixelPadding = 10;
+	this.wordFontPixelSize = 14;
 	this.lastAnimationTime = 0.0;
 	this.div = window.document.getElementById("simulation");
 	window.onload = $bind(this,this.onWindowLoaded);
@@ -92,18 +127,6 @@ Main.prototype = {
 				_g1.zpp_critical = false;
 				body = _g1.zpp_inner.at(_g1.zpp_i++);
 				if(body.zpp_inner.type == 2) {
-					try {
-						var userData;
-						userData = js_Boot.__cast(((function($this) {
-							var $r;
-							if(body.zpp_inner_i.userData == null) body.zpp_inner_i.userData = { };
-							$r = body.zpp_inner_i.userData;
-							return $r;
-						}(this))).sprite , UserData);
-						if(userData.type == 0) Main.backgroundTappingTopic = userData.topic;
-					} catch( e ) {
-						if (e instanceof js__$Boot_HaxeError) e = e.val;
-					}
 					_g.napeHand.set_body2(body);
 					_g.napeHand.set_anchor2(body.worldPointToLocal(_g.pointerPosition,true));
 					_g.napeHand.set_active(true);
@@ -121,31 +144,31 @@ Main.prototype = {
 			_g.pointerPosition.setxy(x2,y2);
 			_g.napeHand.set_active(false);
 		};
-		window.document.addEventListener("mousedown",function(e1) {
-			onPointerDown(e1.clientX,e1.clientY);
-			if(e1.which == 3) _g.resetSimulation();
+		window.document.addEventListener("mousedown",function(e) {
+			onPointerDown(e.clientX,e.clientY);
+			if(e.which == 3) _g.resetSimulation();
 		},false);
-		window.document.addEventListener("mousemove",function(e2) {
-			onPointerMove(e2.clientX,e2.clientY);
+		window.document.addEventListener("mousemove",function(e1) {
+			onPointerMove(e1.clientX,e1.clientY);
 		},false);
-		window.document.addEventListener("mouseup",function(e3) {
-			onPointerUp(e3.clientX,e3.clientY);
+		window.document.addEventListener("mouseup",function(e2) {
+			onPointerUp(e2.clientX,e2.clientY);
 		},false);
-		window.document.addEventListener("touchstart",function(e4) {
-			onPointerDown(e4.touches[0].clientX,e4.touches[0].clientY);
+		window.document.addEventListener("touchstart",function(e3) {
+			onPointerDown(e3.touches[0].clientX,e3.touches[0].clientY);
 		},false);
-		window.document.addEventListener("touchmove",function(e5) {
-			onPointerMove(e5.touches[0].clientX,e5.touches[0].clientY);
+		window.document.addEventListener("touchmove",function(e4) {
+			onPointerMove(e4.touches[0].clientX,e4.touches[0].clientY);
 		},false);
-		window.document.addEventListener("touchend",function(e6) {
-			onPointerUp(e6.touches[0].clientX,e6.touches[0].clientY);
+		window.document.addEventListener("touchend",function(e5) {
+			onPointerUp(e5.touches[0].clientX,e5.touches[0].clientY);
 		},false);
 		window.addEventListener("resize",function() {
 		},false);
-		window.addEventListener("deviceorientation",function(e7) {
-			if(e7.beta != null) {
-				_g.napeGravity.set_x(Math.sin(e7.gamma * Math.PI / 180));
-				_g.napeGravity.set_y(Math.sin(Math.PI / 4 + e7.beta * Math.PI / 180));
+		window.addEventListener("deviceorientation",function(e6) {
+			if(e6.beta != null) {
+				_g.napeGravity.set_x(Math.sin(e6.gamma * Math.PI / 180));
+				_g.napeGravity.set_y(Math.sin(Math.PI / 4 + e6.beta * Math.PI / 180));
 			}
 		},false);
 		window.requestAnimationFrame($bind(this,this.animate));
@@ -162,9 +185,11 @@ Main.prototype = {
 			var _g = this.napeHand.get_body2();
 			_g.set_angularVel(_g.zpp_inner.angvel * 0.95);
 		} else if(this.isPointerDown) {
-			var size = Std["int"](25 + Math.random() * 50);
 			var decorativeBall = Math.random() < 0.15;
-			if(decorativeBall) this.decorativeBalls.add(this.createDecorativeBall(size,this.pointerPosition.get_x(),this.pointerPosition.get_y())); else this.wordBalls.add(this.createWordBall(size,this.pointerPosition.get_x(),this.pointerPosition.get_y(),Main.backgroundTappingTopic));
+			if(decorativeBall) {
+				var size = 50;
+				this.decorativeBalls.add(this.createDecorativeBall(size,this.pointerPosition.get_x(),this.pointerPosition.get_y()));
+			} else this.wordBalls.add(this.createWordBall(this.pointerPosition.get_x(),this.pointerPosition.get_y(),Main.backgroundTappingTopic));
 		}
 		var _g1 = this.wordBalls.iterator();
 		while(_g1.hasNext()) {
@@ -211,7 +236,7 @@ Main.prototype = {
 			}(this))).get_y(),ball1.zpp_inner.rot);
 		}
 		var _g3 = 0;
-		var _g11 = [this.instructionsBall,this.githubBall,this.twitterBall];
+		var _g11 = [this.instructionsBall,this.githubBall,this.twitterBall,this.resetBall];
 		while(_g3 < _g11.length) {
 			var ball2 = _g11[_g3];
 			++_g3;
@@ -257,6 +282,7 @@ Main.prototype = {
 		window.requestAnimationFrame($bind(this,this.animate));
 	}
 	,resetSimulation: function() {
+		var _g = this;
 		this.div.innerHTML = "";
 		this.lastAnimationTime = 0.0;
 		this.generatorMap = new haxe_ds_StringMap();
@@ -311,21 +337,24 @@ Main.prototype = {
 		}(this)),this.topicBallCollisionType,this.topicBallCollisionType,$bind(this,this.topicOnTopicCollision)));
 		this.decorativeBalls = new nape_phys_BodyList();
 		this.topicBalls = new nape_phys_BodyList();
-		var topics = Main.topicGroups[Std["int"](Math.random() * Main.topicGroups.length - 1)];
-		var _g = 0;
-		while(_g < topics.length) {
-			var topic = topics[_g];
-			++_g;
+		var topics = Main.topicGroups[Std["int"](Math.random() * Main.topicGroups.length)];
+		var _g1 = 0;
+		while(_g1 < topics.length) {
+			var topic = topics[_g1];
+			++_g1;
 			this.topicBalls.add(this.createTopicBall(150,200,300,topic));
 		}
 		this.wordBalls = new nape_phys_BodyList();
-		var _g1 = 0;
-		while(_g1 < 10) {
-			var i = _g1++;
-		}
 		this.instructionsBall = this.createInstructions(320,200,200);
-		this.githubBall = this.createClickableBall(128,400,400,"https://github.com/Tw1ddle/word-reactor","<img src=\"assets/images/githublogo.png\" />");
-		this.twitterBall = this.createClickableBall(128,400,400,"https://twitter.com/Sam_Twidale","<img src=\"assets/images/twitterlogo.png\" />");
+		this.githubBall = this.createClickableBall(128,400,400,function() {
+			window.open("https://github.com/Tw1ddle/word-reactor");
+		},"<img src=\"assets/images/githublogo.png\" />");
+		this.twitterBall = this.createClickableBall(128,400,400,function() {
+			window.open("https://twitter.com/Sam_Twidale");
+		},"<img src=\"assets/images/twitterlogo.png\" />");
+		this.resetBall = this.createClickableBall(128,400,400,function() {
+			_g.resetSimulation();
+		},"<img src=\"assets/images/reseticon.png\" />");
 		this.isPointerDown = false;
 		this.pointerPosition = new nape_geom_Vec2(0,0);
 	}
@@ -379,7 +408,7 @@ Main.prototype = {
 			if(ball.zpp_inner_i.userData == null) ball.zpp_inner_i.userData = { };
 			$r = ball.zpp_inner_i.userData;
 			return $r;
-		}(this))).sprite = new UserData(circleContainer,topic,0);
+		}(this))).sprite = new UserData(circleContainer,topic,null,0);
 		((function($this) {
 			var $r;
 			if(ball.zpp_inner_i.wrap_cbTypes == null) ball.zpp_inner_i.setupcbTypes();
@@ -388,17 +417,22 @@ Main.prototype = {
 		}(this))).add(this.topicBallCollisionType);
 		return ball;
 	}
-	,createWordBall: function(size,startX,startY,topic) {
+	,createWordBall: function(startX,startY,topic) {
 		var content = this.createWrappedContent();
+		var words = Reflect.field(TrainingDatas,topic);
+		if(!(words != null)) throw new js__$Boot_HaxeError("FAIL: words != null");
+		var word = this.generate(topic);
+		var size = word.length * this.wordFontPixelSize + this.wordBallPixelPadding;
 		var circleContainer = this.createVisualBall(size,startX,startY,content,null,null);
 		this.div.appendChild(circleContainer);
+		var userData = new UserData(circleContainer,topic,word,1);
 		var ball = this.createNapeBall(size,startX,startY);
 		((function($this) {
 			var $r;
 			if(ball.zpp_inner_i.userData == null) ball.zpp_inner_i.userData = { };
 			$r = ball.zpp_inner_i.userData;
 			return $r;
-		}(this))).sprite = new UserData(circleContainer,topic,1);
+		}(this))).sprite = userData;
 		((function($this) {
 			var $r;
 			if(ball.zpp_inner_i.wrap_cbTypes == null) ball.zpp_inner_i.setupcbTypes();
@@ -460,12 +494,12 @@ Main.prototype = {
 		}(this))).sprite = circleContainer;
 		return ball;
 	}
-	,createClickableBall: function(size,startX,startY,url,innerHTML) {
+	,createClickableBall: function(size,startX,startY,callback,innerHTML) {
 		var content = this.createWrappedContent();
 		var circleContainer = this.createVisualBall(size,startX,startY,content,false,null);
 		this.div.appendChild(circleContainer);
 		circleContainer.addEventListener("click",function(e) {
-			window.open(url);
+			callback();
 		},false);
 		circleContainer.innerHTML = innerHTML;
 		var ball = this.createNapeBall(size,startX,startY);
@@ -525,6 +559,7 @@ Main.prototype = {
 		}(this))).setxy(startX,startY);
 		ball.zpp_inner.wrap_shapes.add(new nape_shape_Circle(size / 2 | 0));
 		ball.set_space(this.napeSpace);
+		ball.set_angularVel(Math.random() * 2 - 1);
 		return ball;
 	}
 	,wordOnWordCollision: function(cb) {
@@ -532,22 +567,39 @@ Main.prototype = {
 	,topicOnTopicCollision: function(cb) {
 		var word1 = cb.zpp_inner.int1.outer_i.get_userData().sprite;
 		var word2 = cb.zpp_inner.int2.outer_i.get_userData().sprite;
-		var ball = this.createWordBall(80,Std["int"](cb.zpp_inner.int1.outer_i.get_castBody().get_position().get_x()),Std["int"](cb.zpp_inner.int1.outer_i.get_castBody().get_position().get_y()),word1.topic);
+		var ball = this.createWordBall(Std["int"](cb.zpp_inner.int1.outer_i.get_castBody().get_position().get_x()),Std["int"](cb.zpp_inner.int1.outer_i.get_castBody().get_position().get_y()),word1.topic);
 		this.wordBalls.add(ball);
 	}
 	,generate: function(topic) {
-		var generator = this.getGenerator(topic);
-		var name = "";
-		while(name == null || name == "") name = generator.generate();
-		return StringTools.replace(name,"#","");
+		var pair = this.getGenerator(topic);
+		var makeWord = function() {
+			var word = "";
+			while(word == null || word.length == 0) word = pair.generator.generate();
+			return word;
+		};
+		var word1 = makeWord();
+		while(pair.trie.find(word1)) word1 = makeWord();
+		var stripHashes = StringTools.replace(word1,"#","");
+		var firstLetter = stripHashes.charAt(0).toUpperCase();
+		return firstLetter + stripHashes.substring(1,stripHashes.length);
 	}
 	,getGenerator: function(topic) {
-		var generator = this.generatorMap.get(topic);
-		if(generator == null) {
-			generator = new markov_namegen_Generator(Reflect.field(TrainingDatas,topic),3,0);
-			this.generatorMap.set(topic,generator);
+		var pair = this.generatorMap.get(topic);
+		if(pair == null) {
+			var data = Reflect.field(TrainingDatas,topic);
+			if(!(data != null)) throw new js__$Boot_HaxeError("FAIL: data != null");
+			var generator = new markov_namegen_Generator(data,3,0);
+			var trie = new markov_util_PrefixTrie();
+			var _g = 0;
+			while(_g < data.length) {
+				var word = data[_g];
+				++_g;
+				trie.insert(word);
+			}
+			pair = new GeneratorTriePair(generator,trie);
+			this.generatorMap.set(topic,pair);
 		}
-		return generator;
+		return pair;
 	}
 	,__class__: Main
 };
@@ -793,9 +845,6 @@ js_Boot.__instanceof = function(o,cl) {
 		return o.__enum__ == cl;
 	}
 };
-js_Boot.__cast = function(o,t) {
-	if(js_Boot.__instanceof(o,t)) return o; else throw new js__$Boot_HaxeError("Cannot cast " + Std.string(o) + " to " + Std.string(t));
-};
 js_Boot.__nativeClassName = function(o) {
 	var name = js_Boot.__toStr.call(o).slice(8,-1);
 	if(name == "Object" || name == "Function" || name == "Math" || name == "JSON") return null;
@@ -1038,6 +1087,90 @@ markov_util__$ArraySet_ArraySet_$Impl_$.toSet = function(array) {
 };
 markov_util__$ArraySet_ArraySet_$Impl_$._new = function(array) {
 	return array;
+};
+var markov_util_PrefixTrie = function() {
+	this.root = new markov_util_PrefixNode(null,"",0);
+};
+markov_util_PrefixTrie.__name__ = true;
+markov_util_PrefixTrie.findChild = function(node,letter) {
+	var _g = 0;
+	var _g1 = node.children;
+	while(_g < _g1.length) {
+		var child = _g1[_g];
+		++_g;
+		if(child.letter == letter) return child;
+	}
+	return null;
+};
+markov_util_PrefixTrie.prototype = {
+	insert: function(word) {
+		var current = this.root;
+		var _g1 = 0;
+		var _g = word.length;
+		while(_g1 < _g) {
+			var i = _g1++;
+			var ch = word.charAt(i);
+			var child = markov_util_PrefixTrie.findChild(current,ch);
+			if(child == null) {
+				child = new markov_util_PrefixNode(current,ch,i);
+				current.children.push(child);
+			} else child.frequency++;
+			current = child;
+		}
+		current.word = true;
+		return current.frequency;
+	}
+	,find: function(word) {
+		var current = this.root;
+		var _g1 = 0;
+		var _g = word.length;
+		while(_g1 < _g) {
+			var i = _g1++;
+			current = markov_util_PrefixTrie.findChild(current,word.charAt(i));
+			if(current == null) return false;
+		}
+		if(!current.word) return false;
+		return true;
+	}
+	,getWords: function() {
+		var queue = new List();
+		queue.add(this.root);
+		var words = [];
+		while(!queue.isEmpty()) {
+			var node = queue.pop();
+			if(node.word) {
+				var word = node.letter;
+				var parent = node.parent;
+				while(parent != null) {
+					word += parent.letter;
+					parent = parent.parent;
+				}
+				words.push(markov_util_StringExtensions.reverse(word));
+			}
+			var _g = 0;
+			var _g1 = node.children;
+			while(_g < _g1.length) {
+				var child = _g1[_g];
+				++_g;
+				queue.add(child);
+			}
+		}
+		return words;
+	}
+	,__class__: markov_util_PrefixTrie
+};
+var markov_util_PrefixNode = function(parent,letter,depth) {
+	if(!(letter.length == 1 || parent == null && depth == 0)) throw new js__$Boot_HaxeError("FAIL: letter.length == 1 || (parent == null && depth == 0)");
+	this.parent = parent;
+	this.children = [];
+	this.letter = letter;
+	this.depth = depth;
+	this.frequency = 1;
+	this.word = false;
+};
+markov_util_PrefixNode.__name__ = true;
+markov_util_PrefixNode.prototype = {
+	__class__: markov_util_PrefixNode
 };
 var markov_util_StringExtensions = function() { };
 markov_util_StringExtensions.__name__ = true;

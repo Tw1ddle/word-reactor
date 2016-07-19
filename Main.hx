@@ -6,6 +6,7 @@ import js.html.CanvasElement;
 import js.html.CanvasRenderingContext2D;
 import js.html.DivElement;
 import markov.namegen.Generator;
+import markov.util.PrefixTrie;
 import nape.callbacks.CbEvent;
 import nape.callbacks.CbType;
 import nape.callbacks.InteractionCallback;
@@ -47,20 +48,17 @@ class UserData {
 	public var text(default, set):String; // The actual text content of the ball
 	public var topic(default, null):String; // The training data category of the data (variable name in the TrainingDatas, not the data itself)
 	
-	public inline function new(container:DivElement, topic:String, type:BallType) {
+	public inline function new(container:DivElement, topic:String, ?text:String, type:BallType) {
 		Sure.sure(container != null);
 		Sure.sure(topic != null);
-
-		var words:Array<String> = Reflect.field(TrainingDatas, topic);
-		Sure.sure(words != null);
 		
 		this.container = container;
 		
 		if (type == BallType.TOPIC) {
 			this.text = topic;
-		}
-		else if(type == BallType.WORD) {
-			this.text = words[Std.int(Math.random() * words.length - 1)]; // Start with a random word from the training data
+		} else {
+			Sure.sure(text != null);
+			this.text = text;
 		}
 		
 		this.topic = topic;
@@ -73,6 +71,17 @@ class UserData {
 		this.text = text;
 		container.getElementsByClassName(Main.INNER_CONTENT_CLASSNAME)[0].innerHTML = text;
 		return this.text;
+	}
+}
+
+// A name generator paired with a trie (used to efficiently avoid creating duplicate words)
+class GeneratorTriePair {
+	public var generator(default, null):Generator;
+	public var trie(default, null):PrefixTrie;
+	
+	public inline function new(generator:Generator, trie:PrefixTrie) {
+		this.generator = generator;
+		this.trie = trie;
 	}
 }
 
@@ -97,7 +106,7 @@ class Main {
 	private var div:DivElement = cast Browser.document.getElementById(ID.simulation); // The div that contains the whole simulation
 	private var lastAnimationTime:Float = 0.0; // Last time from requestAnimationFrame
 	
-	private var generatorMap:StringMap<Generator>; // Maps training data types to word generators
+	private var generatorMap:StringMap<GeneratorTriePair>; // Maps training data types to word generators
 	
 	private var napeGravity:Vec2; // Gravity vector
 	private var napeSpace:Space; // Simulation space
@@ -111,8 +120,12 @@ class Main {
 	private var instructionsBall:Body; // The instructions ball
 	private var twitterBall:Body; // Ball with Twitter link
 	private var githubBall:Body; // Ball with GitHub link
+	private var resetBall:Body; // Ball with a click to reset the simulation option
 	private var pointerPosition:Vec2; // Last pointer position
 	private var isPointerDown:Bool; // Is the pointer down or not
+	
+	private var wordFontPixelSize:Int = 14; // The font size of the word ball text
+	private var wordBallPixelPadding:Int = 10; // The extra space in addition to the ball text width
 	
 	private static function main():Void {
 		var main = new Main();
@@ -134,8 +147,8 @@ class Main {
 			bodies = napeSpace.bodiesUnderPoint(pointerPosition, null, bodies);
 			for (body in bodies) {
 				if (body.isDynamic()) {
-					
-					// Make the last selected ball the current topic ball if the user presses an empty space
+					/*
+					// Makes the last selected topic ball the current topic (for spawning when the user presses an empty space)
 					try {
 						var userData = cast(body.userData.sprite, UserData);
 						if (userData.type == BallType.TOPIC) {
@@ -143,6 +156,7 @@ class Main {
 						}
 					} catch (e:Dynamic) {
 					}
+					*/
 					
 					napeHand.body2 = body;
 					napeHand.anchor2 = body.worldPointToLocal(pointerPosition, true);
@@ -214,14 +228,12 @@ class Main {
 		if (napeHand.active) {
 			napeHand.body2.angularVel *= 0.95; // Diminish the currently held ball's angular velocity
 		} else if (isPointerDown) {
-			// TODO add stream of words (and decorations) to the location until release
-			var size = Std.int(25 + Math.random() * 50);
-			
 			var decorativeBall:Bool = Math.random() < 0.15;
 			if (decorativeBall) {
+				var size = 50; // TODO find size
 				decorativeBalls.add(createDecorativeBall(size, pointerPosition.x, pointerPosition.y));
 			} else {
-				wordBalls.add(createWordBall(size, pointerPosition.x, pointerPosition.y, backgroundTappingTopic));
+				wordBalls.add(createWordBall(pointerPosition.x, pointerPosition.y, backgroundTappingTopic));
 			}
 		}
 		
@@ -231,7 +243,7 @@ class Main {
 		for (ball in topicBalls) {
 			updateBallStyle(ball.userData.sprite.container.style, ball.position.x, ball.position.y, ball.rotation);
 		}
-		for (ball in [instructionsBall, githubBall, twitterBall]) {
+		for (ball in [instructionsBall, githubBall, twitterBall, resetBall]) {
 			if(ball != null) {
 				updateBallStyle(ball.userData.sprite.style, ball.position.x, ball.position.y, ball.rotation);
 			}
@@ -250,7 +262,7 @@ class Main {
 		div.innerHTML = ""; // Remove all the old graphical elements
 		lastAnimationTime = 0.0;
 		
-		generatorMap = new StringMap<Generator>();
+		generatorMap = new StringMap<GeneratorTriePair>();
 		
 		napeGravity = Vec2.weak(0, GRAVITY_STRENGTH);
 		napeSpace = new Space(napeGravity); // The Nape simulation space
@@ -272,20 +284,17 @@ class Main {
 		decorativeBalls = new BodyList();
 		
 		topicBalls = new BodyList();
-		var topics = topicGroups[Std.int(Math.random() * topicGroups.length -  1)];
+		var topics = topicGroups[Std.int(Math.random() * topicGroups.length)];
 		for (topic in topics) {
 			topicBalls.add(createTopicBall(150, 200, 300, topic)); // TODO
 		}
 		
 		wordBalls = new BodyList();
-		for (i in 0...10) {
-			// TODO move out/create columns for each topic?
-			//wordBalls.add(createWordBall(80, 80, 100, 100)); // TODO
-		}
 		
 		instructionsBall = createInstructions(320, 200, 200); // TODO
-		githubBall = createClickableBall(128, 400, 400, GITHUB_URL, '<img src="assets/images/githublogo.png" />');
-		twitterBall = createClickableBall(128, 400, 400, TWITTER_URL, '<img src="assets/images/twitterlogo.png" />');
+		githubBall = createClickableBall(128, 400, 400, function() { Browser.window.open(GITHUB_URL); }, '<img src="assets/images/githublogo.png" />');
+		twitterBall = createClickableBall(128, 400, 400, function() { Browser.window.open(TWITTER_URL); }, '<img src="assets/images/twitterlogo.png" />');
+		resetBall = createClickableBall(128, 400, 400, function() { resetSimulation(); }, '<img src="assets/images/reseticon.png" />');
 		
 		isPointerDown = false;
 		pointerPosition = new Vec2(0, 0);
@@ -297,7 +306,7 @@ class Main {
 	private inline function updateBallStyle(style:Dynamic, x:Float, y:Float, rotation:Float):Void {
 		style.left = Std.string(x - Std.int(Std.parseFloat(StringTools.replace(style.width, "px", "")) / 2)) + "px";
 		style.top = Std.string(y - Std.int(Std.parseFloat(StringTools.replace(style.height, "px", "")) / 2)) + "px";
-		var transform = 'rotate(' + rotation * 57.2957795 + 'deg) translateZ(0)'; // TODO limit +- 45 and loop over to avoid the balls fully flipping and being hard to read?
+		var transform = 'rotate(' + rotation * 57.2957795 + 'deg) translateZ(0)'; // NOTE could limit this to avoid the balls fully flipping and being hard to read. Or possibly instead, tween the text on inactive bodies back to a readable position?
 		style.WebkitTransform = transform;
 		style.MozTransform = transform;
 		style.OTransform = transform;
@@ -348,14 +357,22 @@ class Main {
 	/**
 	 * Creates a ball that contains a generated word
 	 */
-	private inline function createWordBall(size:Int, startX:Float, startY:Float, topic:String):Body {
+	private inline function createWordBall(startX:Float, startY:Float, topic:String):Body {
 		var content = createWrappedContent();
+		
+		var words:Array<String> = Reflect.field(TrainingDatas, topic);
+		Sure.sure(words != null);
+		var word = generate(topic);
+		
+		var size = word.length * wordFontPixelSize + wordBallPixelPadding;
 		
 		var circleContainer = createVisualBall(size, startX, startY, content);
 		div.appendChild(circleContainer);
 		
+		var userData = new UserData(circleContainer, topic, word, BallType.WORD);
+		
 		var ball = createNapeBall(size, startX, startY);
-		ball.userData.sprite = new UserData(circleContainer, topic, BallType.WORD);
+		ball.userData.sprite = userData;
 		ball.cbTypes.add(wordBallCollisionType);
 		return ball;
 	}
@@ -416,7 +433,7 @@ class Main {
 	/**
 	 * Creates a ball containing a clickable image that opens a URL
 	 */
-	private inline function createClickableBall(size:Int, startX:Int, startY:Int, url:String, innerHTML:String):Body {
+	private inline function createClickableBall(size:Int, startX:Int, startY:Int, callback:Void->Void, innerHTML:String):Body {
 		var content = createWrappedContent();
 		var circleContainer = createVisualBall(
 		size,
@@ -429,7 +446,7 @@ class Main {
 		div.appendChild(circleContainer);
 		
 		circleContainer.addEventListener("click", function(e:Dynamic):Void {
-			Browser.window.open(url);
+			callback();
 		}, false);
 		
 		circleContainer.innerHTML = innerHTML;
@@ -479,6 +496,8 @@ class Main {
 		ball.position.setxy(startX, startY);
 		ball.shapes.add(new Circle(Std.int(size / 2)));
 		ball.space = napeSpace;
+		ball.angularVel = Math.random() * 2 - 1;
+		
 		return ball;
 	}
 	
@@ -498,7 +517,7 @@ class Main {
 		var word2:UserData = cast cb.int2.userData.sprite;
 		
 		// TODO create a hybrid word or a random one from one or the other?
-		var ball = createWordBall(80, Std.int(cb.int1.castBody.position.x), Std.int(cb.int1.castBody.position.y), word1.topic); // TODO size
+		var ball = createWordBall(Std.int(cb.int1.castBody.position.x), Std.int(cb.int1.castBody.position.y), word1.topic); // TODO size
 		wordBalls.add(ball);
 	}
 	
@@ -506,23 +525,45 @@ class Main {
 	 * Generates a word for the given topic using a procedural word generator
 	 */
 	private inline function generate(topic:String):String {
-		var generator = getGenerator(topic);
-		var name = "";
-		while (name == null || name == "") {
-			name = generator.generate();
+		var pair = getGenerator(topic);
+		
+		var makeWord = function() {
+			var word = "";
+			while (word == null || word.length == 0) {
+				word = pair.generator.generate();
+			}
+			return word;
 		}
-		return StringTools.replace(name, "#", "");
+		
+		var word = makeWord();
+		while (pair.trie.find(word)) {
+			word = makeWord();
+		}
+
+		var stripHashes = StringTools.replace(word, "#", "");
+		var firstLetter = stripHashes.charAt(0).toUpperCase();
+		return firstLetter + stripHashes.substring(1, stripHashes.length);
 	}
 	
 	/**
 	 * Helper function that returns a word generator for the given topic
 	 */
-	private inline function getGenerator(topic:String):Generator {
-		var generator = generatorMap.get(topic);
-		if (generator == null) {
-			generator = new Generator(Reflect.field(TrainingDatas, topic), 3, 0);
-			generatorMap.set(topic, generator);
+	private inline function getGenerator(topic:String):GeneratorTriePair {
+		var pair = generatorMap.get(topic);
+		if (pair == null) {
+			var data = Reflect.field(TrainingDatas, topic);
+			Sure.sure(data != null);
+			
+			var generator = new Generator(data, 3, 0);
+			
+			var trie = new PrefixTrie();
+			for (word in data) {
+				trie.insert(word);
+			}
+			
+			pair = new GeneratorTriePair(generator, trie);
+			generatorMap.set(topic, pair);
 		}
-		return generator;
+		return pair;
 	}
 }
