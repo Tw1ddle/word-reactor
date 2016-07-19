@@ -1,4 +1,4 @@
-[![Project logo](https://github.com/Tw1ddle/WordReactor/blob/master/screenshots/wordreactor_logo.png?raw=true "Markov Procedural Word Reactor Simulation logo")](http://www.samcodes.co.uk/project/word-reactor/)
+[![Project logo](https://github.com/Tw1ddle/word-reactor/blob/master/screenshots/wordreactor_logo.png "Markov Procedural Word Reactor Simulation logo")](http://www.samcodes.co.uk/project/word-reactor/)
 
 **Word Reactor** is a Markov chain-based procedural name generator inside a physics simulation, written in Haxe. Run it [in the browser](http://www.samcodes.co.uk/project/word-reactor/).
 
