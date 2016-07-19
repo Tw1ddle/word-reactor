@@ -1,18 +1,18 @@
-[![Project logo](https://github.com/Tw1ddle/word-reactor/blob/master/screenshots/wordreactor_logo.png "Markov Procedural Word Reactor Simulation logo")](http://www.samcodes.co.uk/project/word-reactor/)
+[![Project logo](https://github.com/Tw1ddle/word-reactor/blob/master/screenshots/wordreactor_logo.png "Markov Procedural Word Reactor Simulation logo")](https://tw1ddle.github.io/word-reactor/)
 
-**Word Reactor** is a Markov chain-based name generator inside a physics simulation. Run it [in the browser](http://www.samcodes.co.uk/project/word-reactor/).
+**Word Reactor** is a Markov chain-based name generator inside a physics simulation. Run it [in the browser](https://tw1ddle.github.io/word-reactor/).
 
 Demonstrates the [Markov Namegen](http://www.samcodes.co.uk/project/markov-namegen/) name generator and Haxe library.
 
 ## Usage ##
 
-Run the live [demo](http://www.samcodes.co.uk/project/word-reactor/) and generate words. Click the mouse to spawn a stream of words for a random topic:
+Run the live [demo](https://tw1ddle.github.io/word-reactor/) and generate words. Click the mouse to spawn a stream of words for a random topic:
 
-![Screenshot](https://github.com/Tw1ddle/word-reactor/blob/master/screenshots/screenshot2.gif?raw=true "Word Reactor spawning new words")
+[![Screenshot](https://github.com/Tw1ddle/word-reactor/blob/master/screenshots/screenshot2.gif?raw=true "Word Reactor spawning new words")](https://tw1ddle.github.io/word-reactor/)
 
 Collide balls that contain topic words to produce new words. Drag balls around to mix things up:
 
-![Screenshot](https://github.com/Tw1ddle/word-reactor/blob/master/screenshots/screenshot3.gif?raw=true "Word Reactor dragging the topic balls around")
+[![Screenshot](https://github.com/Tw1ddle/word-reactor/blob/master/screenshots/screenshot3.gif?raw=true "Word Reactor dragging the topic balls around")](https://tw1ddle.github.io/word-reactor/)
 
 ## Install ##
 
