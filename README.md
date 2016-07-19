@@ -1,18 +1,18 @@
 [![Project logo](https://github.com/Tw1ddle/word-reactor/blob/master/screenshots/wordreactor_logo.png "Markov Procedural Word Reactor Simulation logo")](http://www.samcodes.co.uk/project/word-reactor/)
 
-**Word Reactor** is a Markov chain-based procedural name generator inside a physics simulation, written in Haxe. Run it [in the browser](http://www.samcodes.co.uk/project/word-reactor/).
+**Word Reactor** is a Markov chain-based name generator inside a physics simulation. Run it [in the browser](http://www.samcodes.co.uk/project/word-reactor/).
 
-Demonstrates the [Markov Namegen](https://github.com/Tw1ddle/MarkovNameGenerator) library.
+Demonstrates the [Markov Namegen](https://github.com/Tw1ddle/MarkovNameGenerator) name generator and Haxe library.
 
 ## Usage ##
 
-Run the live [demo](http://www.samcodes.co.uk/project/word-reactor/) and generate words. Tap topic balls to produce new words, drag and drop to generate hybrids and more:
+Run the live [demo](http://www.samcodes.co.uk/project/word-reactor/) and generate words. Select a topic and hold the mouse to spawn a stream of words:
 
-[TODO screenshot]
+![Screenshot](https://github.com/Tw1ddle/word-reactor/blob/master/screenshots/screenshot2.gif?raw=true "Word Reactor spawning new words")
 
-Drag balls around to mix things up:
+Collide balls that contain topic words to produce new words. Drag balls around to mix things up:
 
-[TODO screenshot]
+![Screenshot](https://github.com/Tw1ddle/word-reactor/blob/master/screenshots/screenshot3.gif?raw=true "Word Reactor dragging the topic balls around")
 
 ## Install ##
 
@@ -30,9 +30,9 @@ Or add it to your ```Project.xml```:
 
 ## How It Works ##
 
-The [markov-namegen haxelib](http://lib.haxe.org/p/markov-namegen) uses [Markov chains](https://en.wikipedia.org/wiki/Markov_chain) to generate random words. Given a set of words as [training data](https://en.wikipedia.org/wiki/Machine_learning), the library calculates the conditional probability of a letter coming up after a sequence of letters chosen so far. It looks back up to "n" characters, where "n" is the order of the model.
+The [markov-namegen haxelib](http://lib.haxe.org/p/markov-namegen) uses [Markov chains](https://en.wikipedia.org/wiki/Markov_chain) to generate random words. Given a set of words as [training data](https://github.com/Tw1ddle/MarkovNameGenerator/tree/master/embed), the library calculates the conditional probability of a letter coming up after a sequence of letters chosen so far. It looks back up to "n" characters, where "n" is the order of the model.
 
-The physics simulation is made using [Nape](https://github.com/deltaluca/nape), a 2D rigid body physics engine for Haxe. When balls containing topic words collide, new balls are created that contain words generated using the training data for those topics.
+The physics simulation is made using [Nape](https://github.com/deltaluca/nape), a 2D rigid body physics engine for Haxe. When balls containing topic words collide, balls are added to the simulation that contain new words generated using the training data for those topics.
 
 ## Notes ##
 * Inspired by the [ball pool](http://mrdoob.com/projects/chromeexperiments/ball-pool/) experiment by [Ricardo Cabello](https://twitter.com/mrdoob) and the sample projects from [Nape](https://github.com/deltaluca/nape) by [Luca Deltodesco](https://github.com/deltaluca).
