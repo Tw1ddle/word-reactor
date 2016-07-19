@@ -211,7 +211,7 @@ class Main {
 			onPointerUp(e.touches[0].clientX, e.touches[0].clientY);
 		}, false);
 		Browser.window.addEventListener("resize", function():Void {
-			// TODO implement resize
+			// NOTE can only really resize by squishing the balls together, so not doing it for now
 		}, false);
 		Browser.window.addEventListener("deviceorientation", function(e:Dynamic):Void {
 			if(e.beta != null) {
@@ -273,10 +273,12 @@ class Main {
 		
 		var screenWidth:Float = Browser.window.innerWidth;
 		var screenHeight:Float = Browser.window.innerHeight;
-		wordFontSizePixels = Std.int(screenWidth * 0.005);
-		wordBallPixelPadding = wordFontSizePixels;
-		topicFontSizePixels = Std.int(screenWidth * 0.01);
-		topicBallPixelPadding = topicFontSizePixels;
+		
+		// NOTE somewhat hardcoded pixel values...
+		wordFontSizePixels = Std.int(Math.max(screenWidth * 0.01, 14));
+		wordBallPixelPadding = 20;
+		topicFontSizePixels = Std.int(Math.max(screenWidth * 0.02, 20));
+		topicBallPixelPadding = 30;
 		
 		napeGravity = Vec2.weak(0, GRAVITY_STRENGTH);
 		napeSpace = new Space(napeGravity); // The Nape simulation space
@@ -345,13 +347,17 @@ class Main {
 		return bounds;
 	}
 	
-	private inline function createWrappedContent():DivElement {
+	private inline function createWrappedContent(?fontSize:Int):DivElement {
 		var outer = Browser.document.createDivElement();
 		outer.className = CONTENT_WRAPPER_CLASSNAME;
 		
 		var inner = Browser.document.createSpanElement();
 		inner.className = INNER_CONTENT_CLASSNAME;
 		inner.innerHTML = "";
+		
+		if(fontSize != null) {
+			inner.style.fontSize = Std.string(fontSize) + "px";
+		}
 		
 		outer.appendChild(inner);
 		
@@ -362,14 +368,14 @@ class Main {
 	 * Creates a ball that contains a generated word
 	 */
 	private inline function createTopicBall(startX:Float, startY:Float, topic:String):Body {
-		var content = createWrappedContent();
+		var content = createWrappedContent(topicFontSizePixels);
 		
-		var size = topic.length * topicFontSizePixels + topicBallPixelPadding;
+		var radius = (topic.length * topicFontSizePixels) * 0.5 + topicBallPixelPadding;
 		
-		var circleContainer = createVisualBall(size, startX, startY, content);
+		var circleContainer = createVisualBall(radius, startX, startY, content);
 		div.appendChild(circleContainer);
 		
-		var ball = createNapeBall(size, startX, startY);
+		var ball = createNapeBall(radius, startX, startY);
 		ball.userData.sprite = new UserData(circleContainer, topic, BallType.TOPIC);
 		ball.cbTypes.add(topicBallCollisionType);
 		return ball;
@@ -379,20 +385,20 @@ class Main {
 	 * Creates a ball that contains a generated word
 	 */
 	private inline function createWordBall(startX:Float, startY:Float, topic:String):Body {
-		var content = createWrappedContent();
+		var content = createWrappedContent(wordFontSizePixels);
 		
 		var words:Array<String> = Reflect.field(TrainingDatas, topic);
 		Sure.sure(words != null);
 		var word = generate(topic);
 		
-		var size = word.length * wordFontSizePixels + wordBallPixelPadding;
+		var radius = (word.length * wordFontSizePixels) * 0.5  + wordBallPixelPadding;
 		
-		var circleContainer = createVisualBall(size, startX, startY, content);
+		var circleContainer = createVisualBall(radius, startX, startY, content);
 		div.appendChild(circleContainer);
 		
 		var userData = new UserData(circleContainer, topic, word, BallType.WORD);
 		
-		var ball = createNapeBall(size, startX, startY);
+		var ball = createNapeBall(radius, startX, startY);
 		ball.userData.sprite = userData;
 		ball.cbTypes.add(wordBallCollisionType);
 		return ball;

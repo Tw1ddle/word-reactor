@@ -287,12 +287,12 @@ Main.prototype = {
 		var _g = this;
 		this.div.innerHTML = "";
 		this.lastAnimationTime = 0.0;
+		this.wordFontSizePixels = 16;
+		this.wordBallPixelPadding = 60;
+		this.topicFontSizePixels = 20;
+		this.topicBallPixelPadding = 60;
 		var screenWidth = window.innerWidth;
 		var screenHeight = window.innerHeight;
-		this.wordFontSizePixels = screenWidth * 0.005 | 0;
-		this.wordBallPixelPadding = this.wordFontSizePixels;
-		this.topicFontSizePixels = screenWidth * 0.01 | 0;
-		this.topicBallPixelPadding = this.topicFontSizePixels;
 		this.napeGravity = nape_geom_Vec2.get(0,600,true);
 		this.napeSpace = new nape_space_Space(this.napeGravity);
 		this.napeHand = new nape_constraint_PivotJoint(this.napeSpace.zpp_inner.__static,null,nape_geom_Vec2.get(0,0,true),nape_geom_Vec2.get(0,0,true));
@@ -393,7 +393,7 @@ Main.prototype = {
 		bounds.zpp_inner.wrap_shapes.add(new nape_shape_Polygon(nape_shape_Polygon.rect(x + width,y,wallThickness,height)));
 		return bounds;
 	}
-	,createWrappedContent: function() {
+	,createWrappedContent: function(fontSize) {
 		var outer;
 		var _this = window.document;
 		outer = _this.createElement("div");
@@ -403,15 +403,16 @@ Main.prototype = {
 		inner = _this1.createElement("span");
 		inner.className = "innerContent";
 		inner.innerHTML = "";
+		if(fontSize != null) inner.style.fontSize = (fontSize == null?"null":"" + fontSize) + "px";
 		outer.appendChild(inner);
 		return outer;
 	}
 	,createTopicBall: function(startX,startY,topic) {
-		var content = this.createWrappedContent();
-		var size = topic.length * this.topicFontSizePixels + this.topicBallPixelPadding;
-		var circleContainer = this.createVisualBall(size,startX,startY,content,null,null);
+		var content = this.createWrappedContent(this.topicFontSizePixels);
+		var radius = topic.length * this.topicFontSizePixels * 0.5 + this.topicBallPixelPadding;
+		var circleContainer = this.createVisualBall(radius,startX,startY,content,null,null);
 		this.div.appendChild(circleContainer);
-		var ball = this.createNapeBall(size,startX,startY);
+		var ball = this.createNapeBall(radius,startX,startY);
 		((function($this) {
 			var $r;
 			if(ball.zpp_inner_i.userData == null) ball.zpp_inner_i.userData = { };
@@ -427,15 +428,15 @@ Main.prototype = {
 		return ball;
 	}
 	,createWordBall: function(startX,startY,topic) {
-		var content = this.createWrappedContent();
+		var content = this.createWrappedContent(this.wordFontSizePixels);
 		var words = Reflect.field(TrainingDatas,topic);
 		if(!(words != null)) throw new js__$Boot_HaxeError("FAIL: words != null");
 		var word = this.generate(topic);
-		var size = word.length * this.wordFontSizePixels + this.wordBallPixelPadding;
-		var circleContainer = this.createVisualBall(size,startX,startY,content,null,null);
+		var radius = word.length * this.wordFontSizePixels * 0.5 + this.wordBallPixelPadding;
+		var circleContainer = this.createVisualBall(radius,startX,startY,content,null,null);
 		this.div.appendChild(circleContainer);
 		var userData = new UserData(circleContainer,topic,word,1);
-		var ball = this.createNapeBall(size,startX,startY);
+		var ball = this.createNapeBall(radius,startX,startY);
 		((function($this) {
 			var $r;
 			if(ball.zpp_inner_i.userData == null) ball.zpp_inner_i.userData = { };
@@ -491,7 +492,7 @@ Main.prototype = {
 		return ball;
 	}
 	,createInstructions: function(size,startX,startY) {
-		var content = this.createWrappedContent();
+		var content = this.createWrappedContent(null);
 		var span = content.childNodes[0];
 		span.innerHTML = "<h1>Word Reactor</h1><br/><span style=\"font-size:15px;\"><strong>Instructions:</strong><br/><br/>1. Drag and collide balls.<br/>2. Tap the background.<br/>3. Tap reset ball.<br/>4. Have fun!</span>";
 		var circleContainer = this.createVisualBall(size,startX,startY,content,null,null);
@@ -506,7 +507,7 @@ Main.prototype = {
 		return ball;
 	}
 	,createClickableBall: function(size,startX,startY,callback,innerHTML) {
-		var content = this.createWrappedContent();
+		var content = this.createWrappedContent(null);
 		var circleContainer = this.createVisualBall(size,startX,startY,content,false,null);
 		this.div.appendChild(circleContainer);
 		circleContainer.addEventListener("click",function(e) {
@@ -605,7 +606,6 @@ Main.prototype = {
 				var word = data[_g];
 				++_g;
 				trie.insert(word);
-				console.log(word);
 			}
 			pair = new GeneratorTriePair(generator,trie);
 			this.generatorMap.set(topic,pair);

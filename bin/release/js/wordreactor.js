@@ -41,17 +41,42 @@ HxOverrides.iter = function(a) {
 		return this.arr[this.cur++];
 	}};
 };
+var List = function() {
+	this.length = 0;
+};
+List.__name__ = true;
+List.prototype = {
+	add: function(item) {
+		var x = [item];
+		if(this.h == null) this.h = x; else this.q[1] = x;
+		this.q = x;
+		this.length++;
+	}
+	,pop: function() {
+		if(this.h == null) return null;
+		var x = this.h[0];
+		this.h = this.h[1];
+		if(this.h == null) this.q = null;
+		this.length--;
+		return x;
+	}
+	,isEmpty: function() {
+		return this.h == null;
+	}
+	,__class__: List
+};
 var ID = function() { };
 ID.__name__ = true;
 var TrainingDatas = function() { };
 TrainingDatas.__name__ = true;
-var UserData = function(container,topic,type) {
+var UserData = function(container,topic,text,type) {
 	if(!(container != null)) throw new js__$Boot_HaxeError("FAIL: container != null");
 	if(!(topic != null)) throw new js__$Boot_HaxeError("FAIL: topic != null");
-	var words = Reflect.field(TrainingDatas,topic);
-	if(!(words != null)) throw new js__$Boot_HaxeError("FAIL: words != null");
 	this.container = container;
-	if(type == 0) this.set_text(topic); else if(type == 1) this.set_text(words[Std["int"](Math.random() * words.length - 1)]);
+	if(type == 0) this.set_text(topic); else {
+		if(!(text != null)) throw new js__$Boot_HaxeError("FAIL: text != null");
+		this.set_text(text);
+	}
 	this.topic = topic;
 	this.type = type;
 };
@@ -65,9 +90,19 @@ UserData.prototype = {
 	}
 	,__class__: UserData
 };
+var GeneratorTriePair = function(generator,trie) {
+	this.generator = generator;
+	this.trie = trie;
+};
+GeneratorTriePair.__name__ = true;
+GeneratorTriePair.prototype = {
+	__class__: GeneratorTriePair
+};
 var Main = function() {
+	this.isFirstRun = true;
 	this.lastAnimationTime = 0.0;
 	this.div = window.document.getElementById("simulation");
+	this.currentTopic = Main.topicGroups[0];
 	window.onload = $bind(this,this.onWindowLoaded);
 };
 Main.__name__ = true;
@@ -77,6 +112,7 @@ Main.main = function() {
 Main.prototype = {
 	onWindowLoaded: function() {
 		var _g = this;
+		this.generatorMap = new haxe_ds_StringMap();
 		this.resetSimulation();
 		var onPointerDown = function(x,y) {
 			_g.isPointerDown = true;
@@ -108,6 +144,7 @@ Main.prototype = {
 			_g.napeHand.get_anchor1().setxy(x2,y2);
 			_g.pointerPosition.setxy(x2,y2);
 			_g.napeHand.set_active(false);
+			Main.backgroundTappingTopic = _g.currentTopic[Std["int"](Math.random() * _g.currentTopic.length)];
 		};
 		window.document.addEventListener("mousedown",function(e) {
 			onPointerDown(e.clientX,e.clientY);
@@ -140,38 +177,26 @@ Main.prototype = {
 	,animate: function(time) {
 		var dt = (time - this.lastAnimationTime) * 0.001;
 		this.lastAnimationTime = time;
+		if(dt > 3) {
+			window.requestAnimationFrame($bind(this,this.animate));
+			return;
+		}
 		this.napeSpace.step(dt,10,10);
 		if(this.napeHand.zpp_inner.active) {
 			var _g = this.napeHand.get_body2();
 			_g.set_angularVel(_g.zpp_inner.angvel * 0.95);
 		} else if(this.isPointerDown) {
-			var bodies = new nape_phys_BodyList();
-			bodies = this.napeSpace.bodiesUnderPoint(this.pointerPosition,null,bodies);
-			var shouldSpawn = true;
-			var _g1;
-			bodies.zpp_inner.valmod();
-			_g1 = nape_phys_BodyIterator.get(bodies);
-			while(_g1.hasNext()) {
-				var body;
-				_g1.zpp_critical = false;
-				body = _g1.zpp_inner.at(_g1.zpp_i++);
-				if(body.zpp_inner.type == 2) {
-					this.napeHand.set_body2(body);
-					this.napeHand.set_anchor2(body.worldPointToLocal(this.pointerPosition,true));
-					this.napeHand.set_active(true);
-					shouldSpawn = false;
-				}
-			}
-			if(shouldSpawn) {
-				var size = Std["int"](25 + Math.random() * 50);
+			var decorativeBall = Math.random() < 0.25;
+			if(decorativeBall) {
+				var size = Std["int"](Math.random() * 40 + 20);
 				this.decorativeBalls.add(this.createDecorativeBall(size,this.pointerPosition.get_x(),this.pointerPosition.get_y()));
-			}
+			} else this.wordBalls.add(this.createWordBall(this.pointerPosition.get_x(),this.pointerPosition.get_y(),Main.backgroundTappingTopic));
 		}
-		var _g2 = this.wordBalls.iterator();
-		while(_g2.hasNext()) {
+		var _g1 = this.wordBalls.iterator();
+		while(_g1.hasNext()) {
 			var ball;
-			_g2.zpp_critical = false;
-			ball = _g2.zpp_inner.at(_g2.zpp_i++);
+			_g1.zpp_critical = false;
+			ball = _g1.zpp_inner.at(_g1.zpp_i++);
 			this.updateBallStyle(((function($this) {
 				var $r;
 				if(ball.zpp_inner_i.userData == null) ball.zpp_inner_i.userData = { };
@@ -189,11 +214,11 @@ Main.prototype = {
 				return $r;
 			}(this))).get_y(),ball.zpp_inner.rot);
 		}
-		var _g3 = this.topicBalls.iterator();
-		while(_g3.hasNext()) {
+		var _g2 = this.topicBalls.iterator();
+		while(_g2.hasNext()) {
 			var ball1;
-			_g3.zpp_critical = false;
-			ball1 = _g3.zpp_inner.at(_g3.zpp_i++);
+			_g2.zpp_critical = false;
+			ball1 = _g2.zpp_inner.at(_g2.zpp_i++);
 			this.updateBallStyle(((function($this) {
 				var $r;
 				if(ball1.zpp_inner_i.userData == null) ball1.zpp_inner_i.userData = { };
@@ -211,11 +236,11 @@ Main.prototype = {
 				return $r;
 			}(this))).get_y(),ball1.zpp_inner.rot);
 		}
-		var _g4 = 0;
-		var _g11 = [this.instructionsBall,this.githubBall,this.twitterBall];
-		while(_g4 < _g11.length) {
-			var ball2 = _g11[_g4];
-			++_g4;
+		var _g3 = 0;
+		var _g11 = [this.instructionsBall,this.githubBall,this.twitterBall,this.resetBall];
+		while(_g3 < _g11.length) {
+			var ball2 = _g11[_g3];
+			++_g3;
 			if(ball2 != null) this.updateBallStyle(((function($this) {
 				var $r;
 				if(ball2.zpp_inner_i.userData == null) ball2.zpp_inner_i.userData = { };
@@ -233,11 +258,11 @@ Main.prototype = {
 				return $r;
 			}(this))).get_y(),ball2.zpp_inner.rot);
 		}
-		var _g5 = this.decorativeBalls.iterator();
-		while(_g5.hasNext()) {
+		var _g4 = this.decorativeBalls.iterator();
+		while(_g4.hasNext()) {
 			var ball3;
-			_g5.zpp_critical = false;
-			ball3 = _g5.zpp_inner.at(_g5.zpp_i++);
+			_g4.zpp_critical = false;
+			ball3 = _g4.zpp_inner.at(_g4.zpp_i++);
 			this.updateBallStyle(((function($this) {
 				var $r;
 				if(ball3.zpp_inner_i.userData == null) ball3.zpp_inner_i.userData = { };
@@ -258,15 +283,21 @@ Main.prototype = {
 		window.requestAnimationFrame($bind(this,this.animate));
 	}
 	,resetSimulation: function() {
+		var _g = this;
 		this.div.innerHTML = "";
 		this.lastAnimationTime = 0.0;
-		this.generatorMap = new haxe_ds_StringMap();
+		var screenWidth = window.innerWidth;
+		var screenHeight = window.innerHeight;
+		this.wordFontSizePixels = Std["int"](Math.max(screenWidth * 0.01,14));
+		this.wordBallPixelPadding = 20;
+		this.topicFontSizePixels = Std["int"](Math.max(screenWidth * 0.02,20));
+		this.topicBallPixelPadding = 30;
 		this.napeGravity = nape_geom_Vec2.get(0,600,true);
 		this.napeSpace = new nape_space_Space(this.napeGravity);
 		this.napeHand = new nape_constraint_PivotJoint(this.napeSpace.zpp_inner.__static,null,nape_geom_Vec2.get(0,0,true),nape_geom_Vec2.get(0,0,true));
 		this.napeHand.set_active(false);
 		this.napeHand.set_stiff(false);
-		this.napeHand.set_maxForce(500000);
+		this.napeHand.set_maxForce(1500000);
 		this.napeHand.set_space(this.napeSpace);
 		this.worldBorder = this.createWorldBorder(0,0,window.innerWidth,window.innerHeight,100);
 		this.worldBorder.set_space(this.napeSpace);
@@ -312,23 +343,27 @@ Main.prototype = {
 		}(this)),this.topicBallCollisionType,this.topicBallCollisionType,$bind(this,this.topicOnTopicCollision)));
 		this.decorativeBalls = new nape_phys_BodyList();
 		this.topicBalls = new nape_phys_BodyList();
-		var topics = Main.topicGroups[Std["int"](Math.random() * Main.topicGroups.length - 1)];
-		var _g = 0;
-		while(_g < topics.length) {
-			var topic = topics[_g];
-			++_g;
-			this.topicBalls.add(this.createTopicBall(150,200,300,topic));
+		if(!this.isFirstRun) this.currentTopic = Main.topicGroups[Std["int"](Math.random() * Main.topicGroups.length)];
+		var _g1 = 0;
+		var _g2 = this.currentTopic.length;
+		while(_g1 < _g2) {
+			var i = _g1++;
+			this.topicBalls.add(this.createTopicBall(screenWidth * 0.5,screenHeight * 0.5,this.currentTopic[i]));
 		}
 		this.wordBalls = new nape_phys_BodyList();
-		var _g1 = 0;
-		while(_g1 < 10) {
-			var i = _g1++;
-		}
-		this.instructionsBall = this.createInstructions(320,200,200);
-		this.githubBall = this.createClickableBall(128,400,400,"https://github.com/Tw1ddle/word-reactor","<img src=\"assets/images/githublogo.png\" />");
-		this.twitterBall = this.createClickableBall(128,400,400,"https://twitter.com/Sam_Twidale","<img src=\"assets/images/twitterlogo.png\" />");
+		this.instructionsBall = this.createInstructions(300,screenWidth * 0.5,screenHeight * 0.5);
+		this.githubBall = this.createClickableBall(128,screenWidth * 0.2,screenHeight * 0.1,function() {
+			window.open("https://github.com/Tw1ddle/word-reactor");
+		},"<img src=\"assets/images/githublogo.png\" />");
+		this.twitterBall = this.createClickableBall(128,screenWidth * 0.5,screenHeight * 0.1,function() {
+			window.open("https://twitter.com/Sam_Twidale");
+		},"<img src=\"assets/images/twitterlogo.png\" />");
+		this.resetBall = this.createClickableBall(128,screenWidth * 0.8,screenHeight * 0.1,function() {
+			_g.resetSimulation();
+		},"<img src=\"assets/images/reseticon.png\" />");
 		this.isPointerDown = false;
 		this.pointerPosition = new nape_geom_Vec2(0,0);
+		this.isFirstRun = false;
 	}
 	,updateBallStyle: function(style,x,y,rotation) {
 		style.left = Std.string(x - Std["int"](Std.parseFloat(StringTools.replace(style.width,"px","")) / 2)) + "px";
@@ -357,7 +392,7 @@ Main.prototype = {
 		bounds.zpp_inner.wrap_shapes.add(new nape_shape_Polygon(nape_shape_Polygon.rect(x + width,y,wallThickness,height)));
 		return bounds;
 	}
-	,createWrappedContent: function() {
+	,createWrappedContent: function(fontSize) {
 		var outer;
 		var _this = window.document;
 		outer = _this.createElement("div");
@@ -367,20 +402,22 @@ Main.prototype = {
 		inner = _this1.createElement("span");
 		inner.className = "innerContent";
 		inner.innerHTML = "";
+		if(fontSize != null) inner.style.fontSize = (fontSize == null?"null":"" + fontSize) + "px";
 		outer.appendChild(inner);
 		return outer;
 	}
-	,createTopicBall: function(size,startX,startY,topic) {
-		var content = this.createWrappedContent();
-		var circleContainer = this.createVisualBall(size,startX,startY,content,null,null);
+	,createTopicBall: function(startX,startY,topic) {
+		var content = this.createWrappedContent(this.topicFontSizePixels);
+		var radius = topic.length * this.topicFontSizePixels * 0.5 + this.topicBallPixelPadding;
+		var circleContainer = this.createVisualBall(radius,startX,startY,content,null,null);
 		this.div.appendChild(circleContainer);
-		var ball = this.createNapeBall(size,startX,startY);
+		var ball = this.createNapeBall(radius,startX,startY);
 		((function($this) {
 			var $r;
 			if(ball.zpp_inner_i.userData == null) ball.zpp_inner_i.userData = { };
 			$r = ball.zpp_inner_i.userData;
 			return $r;
-		}(this))).sprite = new UserData(circleContainer,topic,0);
+		}(this))).sprite = new UserData(circleContainer,topic,null,0);
 		((function($this) {
 			var $r;
 			if(ball.zpp_inner_i.wrap_cbTypes == null) ball.zpp_inner_i.setupcbTypes();
@@ -389,17 +426,22 @@ Main.prototype = {
 		}(this))).add(this.topicBallCollisionType);
 		return ball;
 	}
-	,createWordBall: function(size,startX,startY,topic) {
-		var content = this.createWrappedContent();
-		var circleContainer = this.createVisualBall(size,startX,startY,content,null,null);
+	,createWordBall: function(startX,startY,topic) {
+		var content = this.createWrappedContent(this.wordFontSizePixels);
+		var words = Reflect.field(TrainingDatas,topic);
+		if(!(words != null)) throw new js__$Boot_HaxeError("FAIL: words != null");
+		var word = this.generate(topic);
+		var radius = word.length * this.wordFontSizePixels * 0.5 + this.wordBallPixelPadding;
+		var circleContainer = this.createVisualBall(radius,startX,startY,content,null,null);
 		this.div.appendChild(circleContainer);
-		var ball = this.createNapeBall(size,startX,startY);
+		var userData = new UserData(circleContainer,topic,word,1);
+		var ball = this.createNapeBall(radius,startX,startY);
 		((function($this) {
 			var $r;
 			if(ball.zpp_inner_i.userData == null) ball.zpp_inner_i.userData = { };
 			$r = ball.zpp_inner_i.userData;
 			return $r;
-		}(this))).sprite = new UserData(circleContainer,topic,1);
+		}(this))).sprite = userData;
 		((function($this) {
 			var $r;
 			if(ball.zpp_inner_i.wrap_cbTypes == null) ball.zpp_inner_i.setupcbTypes();
@@ -423,18 +465,20 @@ Main.prototype = {
 		circle = _this1.createElement("canvas");
 		circle.width = size;
 		circle.height = size;
+		var theme = ["#000000","#252525","#525252","#737373","#969696","#bdbdbd","#d9d9d9","#f0f0f0","#ffffff"];
 		var ctx = circle.getContext("2d",null);
-		var num_circles = 1 + Std["int"](Math.random() * 10);
+		var numCircles = 1 + Std["int"](Math.random() * theme.length);
+		var currentCircle = 0;
 		var size1 = size;
 		var i = size1;
 		while(i > 0) {
-			var val = Std.string(Std["int"](Math.random() * 255));
-			ctx.fillStyle = "rgb(" + val + "," + val + "," + val + ")";
+			ctx.fillStyle = theme[currentCircle];
 			ctx.beginPath();
 			ctx.arc(size1 / 2,size1 / 2,i / 2,0,Math.PI * 2);
 			ctx.closePath();
 			ctx.fill();
-			i -= size1 / num_circles | 0;
+			i -= size1 / numCircles | 0;
+			currentCircle++;
 		}
 		circleContainer.appendChild(circle);
 		var ball = this.createNapeBall(size1,startX,startY);
@@ -447,9 +491,9 @@ Main.prototype = {
 		return ball;
 	}
 	,createInstructions: function(size,startX,startY) {
-		var content = this.createWrappedContent();
+		var content = this.createWrappedContent(null);
 		var span = content.childNodes[0];
-		span.innerHTML = "<h1>Reactor</h1><br/><br/><span style=\"font-size:15px;\"><strong>Instructions:</strong><br/><br/>1. Drag and collide balls.<br/>2. Tap the background.<br/>3. Double tap here.<br/>4. Have fun!</span>";
+		span.innerHTML = "<h1>Word Reactor</h1><br/><span style=\"font-size:15px;\"><strong>Instructions:</strong><br/><br/>1. Drag and collide balls.<br/>2. Tap the background.<br/>3. Tap reset ball.<br/>4. Have fun!</span>";
 		var circleContainer = this.createVisualBall(size,startX,startY,content,null,null);
 		this.div.appendChild(circleContainer);
 		var ball = this.createNapeBall(size,startX,startY);
@@ -461,12 +505,12 @@ Main.prototype = {
 		}(this))).sprite = circleContainer;
 		return ball;
 	}
-	,createClickableBall: function(size,startX,startY,url,innerHTML) {
-		var content = this.createWrappedContent();
+	,createClickableBall: function(size,startX,startY,callback,innerHTML) {
+		var content = this.createWrappedContent(null);
 		var circleContainer = this.createVisualBall(size,startX,startY,content,false,null);
 		this.div.appendChild(circleContainer);
 		circleContainer.addEventListener("click",function(e) {
-			window.open(url);
+			callback();
 		},false);
 		circleContainer.innerHTML = innerHTML;
 		var ball = this.createNapeBall(size,startX,startY);
@@ -492,10 +536,10 @@ Main.prototype = {
 			var circle;
 			var _this1 = window.document;
 			circle = _this1.createElement("canvas");
-			circle.width = size;
-			circle.height = size;
+			circle.width = size | 0;
+			circle.height = size | 0;
 			var ctx = circle.getContext("2d",null);
-			if(fillTechnique != null) fillTechnique(ctx,size,size); else {
+			if(fillTechnique != null) fillTechnique(ctx,size | 0,size | 0); else {
 				ctx.fillStyle = "solid";
 				ctx.beginPath();
 				ctx.arc(size / 2,size / 2,size / 2,0,Math.PI * 2);
@@ -526,6 +570,7 @@ Main.prototype = {
 		}(this))).setxy(startX,startY);
 		ball.zpp_inner.wrap_shapes.add(new nape_shape_Circle(size / 2 | 0));
 		ball.set_space(this.napeSpace);
+		ball.set_angularVel(Math.random() * 2 - 1);
 		return ball;
 	}
 	,wordOnWordCollision: function(cb) {
@@ -533,22 +578,38 @@ Main.prototype = {
 	,topicOnTopicCollision: function(cb) {
 		var word1 = cb.zpp_inner.int1.outer_i.get_userData().sprite;
 		var word2 = cb.zpp_inner.int2.outer_i.get_userData().sprite;
-		var ball = this.createWordBall(80,Std["int"](cb.zpp_inner.int1.outer_i.get_castBody().get_position().get_x()),Std["int"](cb.zpp_inner.int1.outer_i.get_castBody().get_position().get_y()),word1.topic);
+		var ball = this.createWordBall(Std["int"](cb.zpp_inner.int1.outer_i.get_castBody().get_position().get_x()),Std["int"](cb.zpp_inner.int1.outer_i.get_castBody().get_position().get_y()),word1.topic);
 		this.wordBalls.add(ball);
 	}
 	,generate: function(topic) {
-		var generator = this.getGenerator(topic);
-		var name = "";
-		while(name == null || name == "") name = generator.generate();
-		return StringTools.replace(name,"#","");
+		var pair = this.getGenerator(topic);
+		var makeWord = function() {
+			var word = "";
+			while(word == null || word.length == 0) word = pair.generator.generate();
+			return StringTools.replace(word,"#","");
+		};
+		var word1 = makeWord();
+		while(pair.trie.find(word1) || (word1.length < 5 || word1.length > 13)) word1 = makeWord();
+		var firstLetter = word1.charAt(0).toUpperCase();
+		return firstLetter + word1.substring(1,word1.length);
 	}
 	,getGenerator: function(topic) {
-		var generator = this.generatorMap.get(topic);
-		if(generator == null) {
-			generator = new markov_namegen_Generator(Reflect.field(TrainingDatas,topic),3,0);
-			this.generatorMap.set(topic,generator);
+		var pair = this.generatorMap.get(topic);
+		if(pair == null) {
+			var data = Reflect.field(TrainingDatas,topic);
+			if(!(data != null)) throw new js__$Boot_HaxeError("FAIL: data != null");
+			var generator = new markov_namegen_Generator(data,3,0);
+			var trie = new markov_util_PrefixTrie();
+			var _g = 0;
+			while(_g < data.length) {
+				var word = data[_g];
+				++_g;
+				trie.insert(word);
+			}
+			pair = new GeneratorTriePair(generator,trie);
+			this.generatorMap.set(topic,pair);
 		}
-		return generator;
+		return pair;
 	}
 	,__class__: Main
 };
@@ -1036,6 +1097,90 @@ markov_util__$ArraySet_ArraySet_$Impl_$.toSet = function(array) {
 };
 markov_util__$ArraySet_ArraySet_$Impl_$._new = function(array) {
 	return array;
+};
+var markov_util_PrefixTrie = function() {
+	this.root = new markov_util_PrefixNode(null,"",0);
+};
+markov_util_PrefixTrie.__name__ = true;
+markov_util_PrefixTrie.findChild = function(node,letter) {
+	var _g = 0;
+	var _g1 = node.children;
+	while(_g < _g1.length) {
+		var child = _g1[_g];
+		++_g;
+		if(child.letter == letter) return child;
+	}
+	return null;
+};
+markov_util_PrefixTrie.prototype = {
+	insert: function(word) {
+		var current = this.root;
+		var _g1 = 0;
+		var _g = word.length;
+		while(_g1 < _g) {
+			var i = _g1++;
+			var ch = word.charAt(i);
+			var child = markov_util_PrefixTrie.findChild(current,ch);
+			if(child == null) {
+				child = new markov_util_PrefixNode(current,ch,i);
+				current.children.push(child);
+			} else child.frequency++;
+			current = child;
+		}
+		current.word = true;
+		return current.frequency;
+	}
+	,find: function(word) {
+		var current = this.root;
+		var _g1 = 0;
+		var _g = word.length;
+		while(_g1 < _g) {
+			var i = _g1++;
+			current = markov_util_PrefixTrie.findChild(current,word.charAt(i));
+			if(current == null) return false;
+		}
+		if(!current.word) return false;
+		return true;
+	}
+	,getWords: function() {
+		var queue = new List();
+		queue.add(this.root);
+		var words = [];
+		while(!queue.isEmpty()) {
+			var node = queue.pop();
+			if(node.word) {
+				var word = node.letter;
+				var parent = node.parent;
+				while(parent != null) {
+					word += parent.letter;
+					parent = parent.parent;
+				}
+				words.push(markov_util_StringExtensions.reverse(word));
+			}
+			var _g = 0;
+			var _g1 = node.children;
+			while(_g < _g1.length) {
+				var child = _g1[_g];
+				++_g;
+				queue.add(child);
+			}
+		}
+		return words;
+	}
+	,__class__: markov_util_PrefixTrie
+};
+var markov_util_PrefixNode = function(parent,letter,depth) {
+	if(!(letter.length == 1 || parent == null && depth == 0)) throw new js__$Boot_HaxeError("FAIL: letter.length == 1 || (parent == null && depth == 0)");
+	this.parent = parent;
+	this.children = [];
+	this.letter = letter;
+	this.depth = depth;
+	this.frequency = 1;
+	this.word = false;
+};
+markov_util_PrefixNode.__name__ = true;
+markov_util_PrefixNode.prototype = {
+	__class__: markov_util_PrefixNode
 };
 var markov_util_StringExtensions = function() { };
 markov_util_StringExtensions.__name__ = true;
@@ -56986,7 +57131,8 @@ TrainingDatas["German Towns"] = ["aach","aachen","aalen","abenberg","abensberg",
 TrainingDatas["Italian Forenames"] = ["achille","adamo","adelasia","adele","adelmo","adriana","adriano","agatha","agnolo","agostino","alberico","alberto","albina","aldo","alessandra","alessandro","alessia","alfredo","alina","alphons","amadeo","amanda","amedeo","amita","andrea","angelica","angelina","angelo","anita","annalisa","annetta","antonietta","antonio","arlo","armando","arsenio","arturo","aurora","baldassare","barbara","bartolomeo","beatrice","benedetto","benito","benvenuto","beppe","berenice","bernardo","bettina","bianca","biancamaria","bruno","camilla","camillo","carmelo","carmine","carolina","cassandra","caterina","cecilia","cesare","chiara","claudia","claudio","clelia","constantino","corrado","cosimo","costanzo","cristina","damiano","daniele","danilo","dante","daria","dario","davide","delfino","diana","dina","dino","domenico","donatella","durante","edoardo","elena","eliana","elisa","elmo","elvira","emiliana","emilio","emma","ennio","enrico","enzo","eraldo","erika","ermenegildo","ernesto","ettore","eugenia","eva","fabia","fabio","fabrizio","fausto","federico","federigo","ferdinando","fernanda","fiamma","filippa","filippo","fiorino","flavia","flavio","flora","francesca","francesco","fredo","fulvio","gabriele","gabriella","gaetano","gaspare","gastone","gemma","geppetto","giacinto","giacobbe","giacomo","giada","giampaolo","giampiero","gian","giancarlo","gianfrancesco","gianfranco","gianluca","gianluigi","gianmarco","gianna","gianni","gianpaolo","gianpietro","gilberto","gino","giorgia","giorgio","giovanna","giovanni","girolamo","giulia","giuliana","giuliano","giulietta","giulio","giuseppe","giuseppina","graziano","griselda","guarino","guglielmo","guido","gustavo","imelda","ingrid","irma","isa","isabella","ivo","jacopo","joseph","julia","lamberto","lando","lara","laureano","lauretta","leonardo","leone","liberto","licia","lilla","lina","livia","livio","lorenzo","luca","luchino","lucia","luciana","luciano","lucio","lucrezia","ludovica","ludovico","luigi","luisa","manuel","marcella","marcello","marco","maria","mariano","mariella","mario","marisa","marissa","martina","martino","massimiliano","massimo","matilda","matteo","maura","maurilio","maurizio","mauro","melania","melina","melissa","michela","michelangelo","michele","micheletto","michelotto","milena","milo","mirco","mirko","morena","nadia","napoleone","natalia","neri","niccolò","nicholas","nicola","nicole","nicoletta","nicolò","nina","nino","nunzio","omero","onofrio","orazio","oreste","orlando","ornella","osvaldo","ottavio","paloma","panfilo","paola","paolo","pascale","pasqual","pasquale","paulina","pellegrino","pierangelo","piergiorgio","piergiuseppe","pierluigi","piermaria","piersanti","pietro","pompeo","priscilla","puccio","rachel","raffaella","raffaello","renata","renato","renzo","riccardo","rita","roberto","rodolfo","rolando","romana","romina","romolo","rosa","rosalia","rosaria","rosario","rosina","ruggero","ruggiero","sabatino","salvatore","salvi","sandra","sandro","sante","santino","saverio","sebastian","serafina","serena","severino","silvestro","silvia","silvio","sonia","sophia","stefania","stefano","stella","susanna","tatiana","tazio","temistocle","tiziano","toni","torquato","tullio","ubaldo","ugo","umberto","valentina","valeria","valerio","vanessa","vanna","veronica","vincentio","vincenzo","virginia","viridiana","vito","vittoria","vittoria","vittorio","zaira","zanobi"];
 TrainingDatas["Japanese Cities"] = ["abashiri","abiko","adachi","agano","ageo","aioi","aira","aisai","aizuwakamatsu","akabira","akaiwa","akashi","aki","akiruno","akishima","akita","akitakata","akune","akō","ama","amagasaki","amakusa","amami","anan","anjō","annaka","aomori","arakawa","arao","arida","asago","asahi","asahikawa","asaka","asakuchi","asakura","ashibetsu","ashikaga","ashiya","aso","atami","atsugi","awa","awaji","awara","ayabe","ayase","azumino","bandō","beppu","bibai","bizen","bungotakada","bunkyo","buzen","chiba","chichibu","chigasaki","chikugo","chikuma","chikusei","chikushino","chino","chiryū","chita","chitose","chiyoda","chōfu","chōshi","chūō","chūō","daisen","daitō","date","date","dazaifu","ebetsu","ebina","ebino","echizen","edogawa","ena","eniwa","etajima","fuchū","fuchū","fuefuki","fuji","fujieda","fujiidera","fujimi","fujimino","fujinomiya","fujioka","fujisawa","fujiyoshida","fukagawa","fukaya","fukuchiyama","fukui","fukuoka","fukuroi","fukushima","fukutsu","fukuyama","funabashi","furano","fussa","futtsu","gamagōri","gero","gifu","ginowan","gobō","gojō","gose","gosen","goshogawara","gotenba","gotō","gujō","gyōda","gōtsu","habikino","hachimantai","hachinohe","hachiōji","hadano","hagi","hakodate","hakui","hakusan","hamada","hamamatsu","hamura","hanamaki","handa","hannan","hannō","hanyū","hashima","hashimoto","hasuda","hatsukaichi","hekinan","hida","hidaka","higashihiroshima","higashikagawa","higashikurume","higashimatsushima","higashimatsuyama","higashimurayama","higashine","higashiyamato","higashiōmi","higashiōsaka","hikari","hikone","himeji","himi","hino","hioki","hirado","hirakata","hirakawa","hiratsuka","hirosaki","hiroshima","hita","hitachi","hitachinaka","hitachiōmiya","hitachiōta","hitoyoshi","hokota","hokuto","hokuto","honjō","hyūga","hōfu","ibara","ibaraki","ibusuki","ichihara","ichikawa","ichikikushikino","ichinomiya","ichinoseki","iga","iida","iiyama","iizuka","ikeda","iki","ikoma","imabari","imari","imizu","ina","inabe","inagi","inashiki","inazawa","inuyama","inzai","iruma","isa","isahaya","ise","isehara","isesaki","ishigaki","ishikari","ishinomaki","ishioka","isumi","itabashi","itako","itami","itoigawa","itoman","itoshima","itō","iwade","iwaki","iwakuni","iwakura","iwamizawa","iwanuma","iwata","iyo","izu","izumi","izumi","izumisano","izumiōtsu","izumo","izunokuni","jōetsu","jōsō","jōyō","kadoma","kaga","kagoshima","kahoku","kai","kainan","kaizu","kaizuka","kakamigahara","kakegawa","kakogawa","kakuda","kama","kamagaya","kamaishi","kamakura","kameoka","kameyama","kami","kaminoyama","kamisu","kamo","kamogawa","kan'onji","kanazawa","kani","kanoya","kanuma","kanzaki","karatsu","kariya","kasai","kasama","kasaoka","kashiba","kashihara","kashima","kashima","kashiwa","kashiwara","kashiwazaki","kasuga","kasugai","kasukabe","kasumigaura","katagami","katano","katori","katsuragi","katsushika","katsuura","katsuyama","katō","kawachinagano","kawagoe","kawaguchi","kawanishi","kawasaki","kazo","kazuno","kesennuma","kikuchi","kikugawa","kimitsu","kinokawa","kirishima","kiryū","kisarazu","kishiwada","kita","kitaakita","kitahiroshima","kitaibaraki","kitakami","kitakata","kitakyūshū","kitami","kitamoto","kitanagoya","kitsuki","kiyose","kiyosu","kizugawa","kobayashi","kobe","kodaira","koga","koga","koganei","kokubunji","komae","komagane","komaki","komatsu","komatsushima","komoro","konan","kosai","koshigaya","koto","kudamatsu","kuji","kuki","kumagaya","kumamoto","kumano","kunisaki","kunitachi","kurashiki","kurayoshi","kure","kurihara","kurobe","kuroishi","kurume","kusatsu","kushima","kushiro","kuwana","kyoto","kyōtanabe","kyōtango","kōchi","kōfu","kōka","kōnan","kōnan","kōnosu","kōriyama","kōshi","kōshū","machida","maebashi","maibara","maizuru","makinohara","makurazaki","maniwa","marugame","masuda","matsubara","matsudo","matsue","matsumoto","matsusaka","matsuura","matsuyama","meguro","midori","mihara","mikasa","miki","mima","mimasaka","minamata","minamiashigara","minamiawaji","minamibōsō","minamikyūshū","minamisatsuma","minamishimabara","minamisōma","minato","mine","mino","minoh","minokamo","misato","misawa","mishima","mitaka","mito","mitoyo","mitsuke","miura","miyako","miyakojima","miyakonojō","miyama","miyawaka","miyazaki","miyazu","miyoshi","miyoshi","miyoshi","mizuho","mizunami","mobara","monbetsu","mooka","moriguchi","morioka","moriya","moriyama","motomiya","motosu","mukō","munakata","murakami","murayama","muroran","muroto","musashimurayama","musashino","mutsu","myōkō","nabari","nagahama","nagai","nagano","nagaoka","nagaokakyō","nagareyama","nagasaki","nagato","nago","nagoya","naha","naka","nakama","nakano","nakatsu","nakatsugawa","namegata","namerikawa","nan'yō","nanao","nanjō","nankoku","nantan","nanto","nara","narashino","narita","naruto","nasukarasuyama","nasushiobara","natori","nayoro","nemuro","nerima","neyagawa","nichinan","nihonmatsu","niigata","niihama","niimi","niiza","nikaho","nikkō","ninohe","nirasaki","nishinomiya","nishinoomote","nishio","nishitōkyō","nishiwaki","nisshin","nobeoka","noboribetsu","noda","nomi","nonoichi","noshiro","numata","numazu","nōgata","obama","obanazawa","obihiro","odawara","oga","ogi","ogōri","ojiya","okaya","okayama","okazaki","okegawa","okinawa","omaezaki","omitama","ono","onomichi","osaka","otaru","owariasahi","owase","oyabe","oyama","rikuzentakata","rittō","rumoi","ryūgasaki","sabae","sado","saga","sagae","sagamihara","saijō","saikai","saiki","saitama","saito","sakado","sakai","sakai","sakaide","sakaiminato","sakata","saku","sakura","sakura","sakuragawa","sakurai","sanda","sanjō","sanmu","sano","sanuki","sapporo","sasayama","sasebo","satsumasendai","satte","sayama","seiyo","seki","semboku","sendai","sennan","setagaya","seto","setouchi","settsu","shibata","shibetsu","shibukawa","shibushi","shibuya","shijōnawate","shiki","shikokuchūō","shima","shimabara","shimada","shimanto","shimoda","shimonoseki","shimotsuke","shimotsuma","shinagawa","shingū","shinjuku","shinjō","shinshiro","shiogama","shiojiri","shirakawa","shiroi","shiroishi","shisō","shizuoka","shōbara","shūnan","sodegaura","soo","special","suginami","suita","sukagawa","sukumo","sumida","sumoto","sunagawa","susaki","susono","suwa","suzaka","suzu","suzuka","sōja","sōka","sōma","sōsa","tachikawa","tagajō","tagawa","tahara","tainai","taitō","tajimi","takahagi","takahama","takahashi","takaishi","takamatsu","takaoka","takarazuka","takasago","takasaki","takashima","takatsuki","takayama","takehara","takeo","taketa","takikawa","takizawa","taku","tama","tamana","tamano","tamba","tamura","tanabe","tarumizu","tatebayashi","tateyama","tatsuno","tendō","tenri","toba","tochigi","toda","toki","tokoname","tokorozawa","tokushima","tomakomai","tome","tomigusuku","tomioka","tomisato","tonami","tondabayashi","toride","tosa","tosashimizu","toshima","tosu","tottori","towada","toyama","toyoake","toyohashi","toyokawa","toyonaka","toyooka","toyota","tsu","tsubame","tsuchiura","tsugaru","tsukuba","tsukubamirai","tsukumi","tsuru","tsuruga","tsurugashima","tsuruoka","tsushima","tsushima","tsuyama","tōgane","tōkai","tōkamachi","tōmi","tōno","tōon","ube","uda","ueda","uenohara","uji","uki","ukiha","unnan","unzen","uonuma","uozu","urasoe","urayasu","ureshino","uruma","usa","ushiku","usuki","utashinai","uto","utsunomiya","uwajima","wajima","wakayama","wakkanai","wakō","warabi","yabu","yachimata","yachiyo","yaita","yaizu","yamaga","yamagata","yamagata","yamaguchi","yamanashi","yamato","yamatokōriyama","yamatotakada","yame","yanagawa","yanai","yao","yashio","yasu","yasugi","yatomi","yatsushiro","yawata","yawatahama","yokkaichi","yokohama","yokosuka","yokote","yonago","yonezawa","yoshikawa","yoshinogawa","yotsukaidō","yufu","yukuhashi","yurihonjō","yuzawa","yūbari","yūki","zama","zentsūji","zushi","ōbu","ōda","ōdate","ōfunato","ōgaki","ōita","ōkawa","ōmachi","ōme","ōmihachiman","ōmura","ōmuta","ōno","ōnojō","ōsakasayama","ōsaki","ōshū","ōta","ōta","ōtake","ōtawara","ōtsu","ōtsuki","ōzu"];
 TrainingDatas["Japanese Forenames"] = ["ai","aiko","aimi","airi","akane","akari","akemi","aki","akie","akifumi","akihiko","akihiro","akihisa","akihito","akiko","akimasa","akimi","akimitsu","akina","akinobu","akinori","akio","akira","akisada","akishige","akito","akitoshi","akitsugu","akiyoshi","akiyuki","amane","ami","anri","anzu","aoi","arata","arihiro","arinaga","arinobu","aritomo","asako","asami","asao","asuka","asuka","asumi","asuna","atomu","atsuhiko","atsuhiro","atsuko","atsumi","atsuo","atsushi","atsuto","atsuya","aya","ayaka","ayako","ayame","ayana","ayane","ayano","ayu","ayuka","ayumi","ayumu","azuma","azumi","azusa","banri","bunji","bunta","chiaki","chie","chieko","chiemi","chiharu","chihiro","chiho","chika","chikara","chikayoshi","chinami","chinatsu","chisato","chitose","chiyako","chiyo","chiyoko","chizuko","chizuru","choki","chōei","chūichi","dai","daichi","daigo","daiki","dairoku","daishin","daisuke","daizō","eiichi","eiichiro","eiji","eijirō","eikichi","eiko","eimi","einosuke","eishun","eisuke","eizō","emi","emiko","emiri","eri","erika","eriko","etsuji","etsuko","fujiko","fujio","fukumi","fumiaki","fumie","fumihiko","fumihiro","fumika","fumiko","fumio","fumito","fumiya","fusako","fusanosuke","fusazane","futoshi","fuyuki","fuyuko","gaku","gakuto","gen'ichi","gen'ichirō","genjiro","genta","gentarō","genzo","giichi","gin","goichi","goro","hachirō","hajime","hakaru","hana","hanae","hanako","haru","haruaki","haruchika","harue","haruhi","haruhiko","haruhiro","haruhisa","haruka","haruki","haruko","harumi","haruna","harunobu","haruo","harutaka","haruto","haruyo","haruyoshi","hatsu","hatsue","hatsuo","hayanari","hayate","hayato","hazuki","heihachirō","heisuke","hideaki","hideharu","hidehiko","hidehito","hideji","hidekazu","hideki","hideko","hidemasa","hidemi","hidemi","hidemitsu","hidenobu","hidenori","hideo","hideshi","hidetaka","hideto","hidetoshi","hidetsugu","hideyo","hideyoshi","hideyuki","hikari","hikaru","himeko","hinata","hiro","hiroaki","hiroe","hirofumi","hirohide","hirohisa","hiroji","hirokatsu","hirokazu","hiroki","hiroko","hirokuni","hiromasa","hiromi","hiromichi","hiromitsu","hiromori","hiromu","hironari","hironobu","hironori","hiroshi","hiroshige","hirotaka","hirotami","hiroto","hirotoki","hirotomo","hirotoshi","hirotsugu","hiroya","hiroyasu","hiroyo","hiroyoshi","hiroyuki","hisae","hisahito","hisako","hisamitsu","hisamoto","hisanobu","hisanori","hisao","hisashi","hisataka","hisateru","hisato","hisaya","hisaya","hisayasu","hisayo","hisayoshi","hisayuki","hitomi","hitoshi","hokuto","honami","hotaru","hozumi","ichiei","ichiko","ichirō","ichizō","iehisa","iemasa","iemon","iesada","ikko","ikue","ikumi","ikuo","ikurō","iori","ippei","isami","isamu","isao","issei","itaru","itsuki","itsuko","itsumi","iwao","izumi","jiichirō","jin","jin'ichi","jinpachi","jiro","jitsuko","jun","jun'ichirō","jun'ya","junichi","junji","junki","junko","junpei","junzō","jōichirō","jōji","jōkichi","jōtarō","jūbei","jūkichi","jūshirō","jūtarō","jūzō","kaede","kagami","kagemori","kagetaka","kaguya","kaho","kahoru","kaiji","kaito","kakichi","kaku","kakuji","kan'ichi","kana","kanae","kanako","kaname","kanehira","kanehiro","kanematsu","kanemoto","kanesuke","kanetake","kaneto","kanetsugu","kaneyoshi","kankuro","kansuke","kaori","kaoru","karin","kasumi","katsuaki","katsuei","katsuhiko","katsuhiro","katsuhisa","katsuhito","katsuji","katsuki","katsukiyo","katsuko","katsumasa","katsumi","katsumoto","katsunaga","katsunari","katsunori","katsunosuke","katsuo","katsushi","katsusuke","katsutarō","katsuteru","katsutomo","katsutoshi","katsuya","katsuyoshi","katsuyuki","kawai","kayo","kayoko","kazu","kazuaki","kazue","kazuharu","kazuhiko","kazuhiro","kazuhisa","kazuhito","kazuki","kazuko","kazuma","kazumasa","kazumi","kazunari","kazunori","kazuo","kazuoki","kazurō","kazusa","kazushi","kazushige","kazutaka","kazuto","kazutoki","kazutoshi","kazuya","kazuyo","kazuyoshi","kazuyuki","kei","keigo","keiichi","keiichirō","keiji","keijirō","keijū","keiki","keiki","keiko","keinosuke","keishi","keisuke","keita","keizō","ken","ken'ichi","ken'ichirō","ken'yū","kengo","kenji","kenjirō","kenki","kenkichi","kensaku","kenshin","kensuke","kenta","kentaro","kento","kenzo","kesao","kihachi","kihachirō","kihei","kiichirō","kiko","kikue","kikuko","kikuo","kimiko","kimio","kimiya","kin'ichi","kin'ichirō","kin'ya","kinji","kinjirō","kintaro","kira","kisaburō","kishō","kiyoaki","kiyofumi","kiyohide","kiyohiko","kiyohiro","kiyoji","kiyokazu","kiyoko","kiyomoto","kiyonari","kiyonori","kiyoshi","kiyosue","kiyotaka","kiyotake","kiyoyuki","kogorō","koharu","koji","kojiro","konomi","koson","kotaro","kotomi","kotori","kouta","koya","kozue","kumatarō","kumi","kumiko","kuniaki","kunie","kunihiko","kunihiro","kunihisa","kuniko","kunimitsu","kunio","kunitake","kuniyuki","kuranosuke","kurenai","kurumi","kusuo","kyo","kyoko","kyukichi","kyōhei","kyōichi","kyōji","kyōsuke","kōhei","kōichi","kōichirō","kōki","kōkichi","kōnosuke","kōsaku","kōsei","kōshirō","kōsuke","kōzō","maaya","machi","machiko","madoka","mahiro","maho","maiko","maki","makiko","makio","mako","makoto","mami","mamiko","mamoru","mana","manabu","manami","manjirō","mantarō","mao","mareo","mari","mariko","marié","masaaki","masabumi","masachika","masae","masafumi","masaharu","masahide","masahiko","masahiro","masahisa","masahito","masaichi","masaie","masaji","masakage","masakatsu","masakazu","masaki","masako","masakuni","masami","masamichi","masamitsu","masamori","masamune","masamura","masanao","masanobu","masanori","masao","masaomi","masaru","masashi","masashige","masataka","masatake","masatane","masateru","masato","masatomo","masatoshi","masatsugu","masaya","masayoshi","masayuki","masazumi","masumi","masuo","masuzō","matabei","matsuchi","matsuki","matsuko","matsuo","matsushige","mayako","mayu","mayuko","mayumi","mayura","megu","megumi","mei","meiko","meisa","michiaki","michiharu","michihiko","michihiro","michihisa","michiko","michinori","michio","michiru","michirō","michitaka","michitarō","michiya","michiyo","michiyoshi","midori","mie","mieko","miho","miiko","mika","mikako","miki","mikiko","mikio","mikoto","miku","mikuni","mikuru","mimori","mina","minae","minako","minami","mineichi","mineko","mineo","minori","mirai","misaki","misako","misao","misato","mitsuaki","mitsugi","mitsugu","mitsuharu","mitsuhide","mitsuhiko","mitsuhira","mitsuhiro","mitsuhisa","mitsuki","mitsuko","mitsumasa","mitsumori","mitsunobu","mitsunori","mitsuo","mitsuomi","mitsuru","mitsusuke","mitsutaka","mitsuteru","mitsutoshi","mitsuyasu","mitsuyo","mitsuyo","mitsuyoshi","mitsuyuki","miu","miwa","miwako","miyabi","miyako","miyoko","miyu","miyuki","miyumi","miyū","mizuho","mizuki","mizuko","mochiaki","moe","mokichi","momo","momoe","momoka","momoko","morihiko","morihiro","morikazu","morimasa","morio","moritaka","mosuke","motoaki","motoharu","motohiko","motohiro","motoichi","motojirō","motoki","motoko","motomu","motonobu","motoshi","motoshige","motosuke","mototada","mototsugu","motoyasu","motoyuki","motozane","mukuro","munehiro","munemori","munenobu","munenori","muneo","muneshige","munetaka","munetoki","munetoshi","murashige","mutsuko","mutsumi","mutsuo","nagaharu","nagahide","nagako","nagamasa","nagamichi","naganao","naganori","nagatoki","nagatomo","nagisa","nami","namio","nana","nanako","nanami","nanase","nankichi","nao","naofumi","naohiko","naohiro","naohisa","naohito","naoji","naokatsu","naoki","naoko","naomasa","naomi","naomichi","naomori","naoshi","naotaka","naotake","naoto","naoya","naoyuki","naozumi","nariaki","nariakira","naritaka","nariyasu","nariyuki","naruhisa","naruhito","narumi","natsue","natsuki","natsuko","natsume","natsumi","noa","noboru","nobuaki","nobuatsu","nobuharu","nobuhiko","nobuhiro","nobuhisa","nobuhito","nobukatsu","nobukazu","nobuko","nobumasa","nobumitsu","nobumoto","nobunao","nobunari","nobuo","nobusada","nobusuke","nobutaka","nobuteru","nobutoki","nobutomo","nobutoshi","nobutsuna","nobuyasu","nobuyoshi","nobuyuki","nodoka","noriaki","norifumi","norifusa","norihiko","norihiro","norihito","norikazu","noriko","norimasa","norio","noriyasu","noriyo","noriyoshi","noriyuki","nozomi","nozomu","okimoto","okitsugu","omi","osamu","otoha","otohiko","otome","raizo","ran","rei","reiichi","reiji","reika","reiko","reizō","ren","rena","rentarō","rie","rieko","riho","riichi","rika","rikichi","rikiya","riku","rin","rina","rinshō","risa","ritsuko","rokurō","rumi","rumiko","runa","ruri","ruriko","ryoko","ryu","ryō","ryōhei","ryōichi","ryōji","ryōka","ryōma","ryōsei","ryōsuke","ryōta","ryōtarō","ryōzō","ryūhei","ryūichi","ryūji","ryūki","ryūnosuke","ryūsaku","ryūsei","ryūsuke","ryūta","ryūtarō","ryūya","ryūzō","saburō","sachie","sachiko","sachio","sadaaki","sadaharu","sadahiko","sadako","sadao","sadatoshi","sadayoshi","sadazane","saeko","saiichi","sakae","saki","sakichi","sakie","sakiko","sakura","sakurako","sanae","saori","satoko","satomi","satonari","satoru","satoshi","satsuki","satsuo","sawako","saya","sayaka","sayako","sayoko","sayumi","sayuri","seigen","seigo","seihō","seiichi","seiichirō","seiji","seijin","seijirō","seikichi","seiko","seishi","seishirō","seiya","seizō","senkichi","setsuko","setsuna","shichirō","shigeaki","shigefumi","shigeharu","shigehiro","shigehisa","shigekazu","shigeki","shigeko","shigemasa","shigematsu","shigemi","shigemitsu","shigenaga","shigenobu","shigenori","shigeo","shigeri","shigeru","shigetada","shigetaka","shigeto","shigetoshi","shigeyasu","shigeyoshi","shigeyuki","shiho","shiina","shikō","shimako","shin","shin'ichi","shin'ichirō","shinako","shingo","shinji","shinjirō","shinjō","shinkichi","shino","shinobu","shinpei","shinsaku","shinsuke","shinta","shintarō","shinya","shinzō","shion","shiori","shizue","shizuka","shizuko","shizuo","shoko","shuko","shuko","shun","shun'ichi","shun'ichirō","shun'ya","shunji","shunkichi","shunpei","shunsaku","shunsuke","shuntarō","shunzō","shō","shōgo","shōhei","shōichi","shōji","shōjirō","shōma","shōsuke","shōta","shōtarō","shōya","shōzō","shūgo","shūhei","shūichi","shūji","shūsaku","shūsuke","shūta","shūzō","sonosuke","sora","subaru","suehiro","suguru","sukehiro","sukemasa","suketoshi","suketsugu","sumika","sumiko","sumio","sumire","sumiyoshi","sunao","susumu","suzue","suzuko","sōgen","sōichi","sōichirō","sōji","sōsuke","sōtarō","tadaaki","tadachika","tadafumi","tadaharu","tadahiko","tadahiro","tadahito","tadakatsu","tadamasa","tadami","tadamori","tadanaga","tadanao","tadanari","tadanobu","tadanori","tadao","tadaoki","tadashi","tadataka","tadateru","tadatomo","tadatoshi","tadatsugu","tadatsune","tadayo","tadayoshi","tadayuki","taeko","taichi","taichirō","taiga","taiichi","taiji","taiki","taishi","taisuke","taka","takaaki","takafumi","takahide","takahiko","takahiro","takahisa","takahito","takaki","takako","takamasa","takamitsu","takanobu","takanori","takao","takashi","takatomi","takatoshi","takatsugu","takauji","takaya","takayasu","takayoshi","takayuki","takeaki","takefumi","takeharu","takehiko","takehiro","takehisa","takehito","takeichi","takejirō","takeko","takenaga","takenori","takeo","takeru","takeshi","taketo","taketora","taketoshi","takeya","takeyoshi","takezō","taku","takuji","takuma","takumi","takuo","takurō","takuto","takuya","takuzō","tamaki","tamao","tamiko","tamio","tamotsu","tarō","tateo","tatsuaki","tatsuhiko","tatsuhiro","tatsuhito","tatsuji","tatsuko","tatsuma","tatsumi","tatsunori","tatsuo","tatsurō","tatsushi","tatsuya","tatsuyoshi","tatsuyuki","teiji","teijirō","teiko","teiko","teizō","teppei","teru","teruaki","teruhiko","teruhisa","teruko","terumasa","terumi","terunobu","teruo","teruyoshi","teruyuki","tetsu","tetsuharu","tetsuji","tetsumasa","tetsuo","tetsurō","tetsushi","tetsutarō","tetsuya","tetsuzō","togo","tokihiko","tokiko","tokio","tokuji","tokujirō","tokuko","tokuo","tokurō","tokutarō","tomiko","tomio","tomo","tomoaki","tomochika","tomoe","tomoharu","tomohide","tomohiko","tomohiro","tomohisa","tomohito","tomoji","tomoka","tomokazu","tomoki","tomoko","tomomi","tomomichi","tomonobu","tomonori","tomotaka","tomoya","tomoyasu","tomoyo","tomoyoshi","tomoyuki","torahiko","toru","toshi","toshiaki","toshiharu","toshihide","toshihiko","toshihiro","toshihisa","toshihito","toshikatsu","toshikazu","toshiki","toshiko","toshimasa","toshimi","toshimichi","toshimitsu","toshinaga","toshinari","toshinobu","toshinori","toshio","toshirō","toshitada","toshitaka","toshitsugu","toshiya","toshiyasu","toshiyuki","toshizō","toyoaki","toyohiko","toyokazu","toyoko","toyomatsu","toyoshige","toyozō","tsubasa","tsugio","tsukasa","tsuneharu","tsunehisa","tsunejirō","tsuneko","tsunemi","tsunenori","tsuneo","tsuneyoshi","tsuneyuki","tsutomu","tsuyoshi","umanosuke","umeji","umeko","wakako","wataru","yaeko","yahiko","yahiro","yanosuke","yasuaki","yasue","yasufumi","yasuharu","yasuhide","yasuhiko","yasuhiro","yasuhisa","yasuji","yasujirō","yasukazu","yasuki","yasuko","yasumasa","yasumi","yasumichi","yasunari","yasunobu","yasunori","yasuo","yasurō","yasushi","yasutaka","yasutomo","yasutoshi","yasuyoshi","yasuyuki","yatarō","yayoi","yoko","yorimitsu","yorinobu","yorishige","yoritaka","yoritsugu","yoritsune","yoriyuki","yoshi","yoshifumi","yoshihide","yoshihiko","yoshihiro","yoshihisa","yoshihito","yoshiie","yoshika","yoshikane","yoshikatsu","yoshikazu","yoshiki","yoshikiyo","yoshiko","yoshikuni","yoshimasa","yoshimatsu","yoshimi","yoshimichi","yoshinaga","yoshinao","yoshinari","yoshino","yoshinobu","yoshinori","yoshio","yoshirō","yoshisada","yoshishige","yoshisuke","yoshitaka","yoshitake","yoshitarō","yoshiteru","yoshito","yoshitomo","yoshitsugu","yoshiya","yoshiyasu","yoshiyuki","yugi","yugo","yui","yuka","yukari","yuki","yukie","yukiharu","yukihiko","yukihiro","yukiko","yukimasa","yukimura","yukina","yukinobu","yukinori","yukio","yukitaka","yukito","yukiya","yumeko","yumi","yumika","yumiko","yuri","yurie","yurika","yuriko","yurina","yutaka","yuzuru","yō","yō","yōhei","yōichi","yōichirō","yōji","yōjirō","yōsuke","yōta","yōzō","yū","yūdai","yūhei","yūichi","yūichirō","yūji","yūjirō","yūkichi","yūko","yūsaku","yūsei","yūshi","yūsuke","yūta","yūtarō","yūto","yūya","yūzō","zenjiro","zenkichi","zentarō","zenzō"];
-TrainingDatas.Pokemon = ["abra","aerodactyl","alakazam","arbok","arcanine","articuno","beedrill","bellsprout","blastoise","bulbasaur","butterfree","caterpie","chansey","charizard","charmander","charmeleon","clefable","clefairy","cloyster","cubone","dewgong","diglett","ditto","dodrio","doduo","dragonair","dragonite","dratini","drowzee","dugtrio","eevee","ekans","electabuzz","electrode","exeggcute","exeggutor","farfetchd","fearow","flareon","gastly","gengar","geodude","gloom","golbat","goldeen","golduck","golem","graveler","grimer","growlithe","gyarados","haunter","hitmonchan","hitmonlee","horsea","hypno","ivysaur","jigglypuff","jolteon","jynx","kabuto","kabutops","kadabra","kakuna","kangaskhan","kingler","koffing","krabby","lapras","lickitung","machamp","machoke","machop","magikarp","magmar","magnemite","magneton","mankey","marowak","meowth","metapod","mew","mewtwo","mime","moltres","muk","nidoking","nidoqueen","nidoran","nidoran","nidorina","nidorino","ninetales","oddish","omanyte","omastar","onix","paras","parasect","persian","pidgeot","pidgeotto","pidgey","pikachu","pinsir","poliwag","poliwhirl","poliwrath","ponyta","porygon","primeape","psyduck","raichu","rapidash","raticate","rattata","rhydon","rhyhorn","sandshrew","sandslash","scyther","seadra","seaking","seel","shellder","slowbro","slowpoke","snorlax","spearow","squirtle","starmie","staryu","tangela","tauros","tentacool","tentacruel","vaporeon","venomoth","venonat","venusaur","victreebel","vileplume","voltorb","vulpix","wartortle","weedle","weepinbell","weezing","wigglytuff","zapdos","zubat"];
+TrainingDatas["Modern Pokemon"] = ["abomasnow","abra","absol","accelgor","aegislash","aerodactyl","aggron","aipom","alakazam","alomomola","altaria","amaura","ambipom","amoonguss","ampharos","anorith","arbok","arcanine","arceus","archen","archeops","ariados","armaldo","aromatisse","aron","articuno","audino","aurorus","avalugg","axew","azelf","azumarill","azurill","bagon","baltoy","banette","barbaracle","barboach","basculin","bastiodon","bayleef","beartic","beautifly","beedrill","beheeyem","beldum","bellossom","bellsprout","bergmite","bewear","bibarel","bidoof","binacle","bisharp","blastoise","blaziken","blissey","blitzle","boldore","bonsly","bouffalant","braixen","braviary","breloom","bronzong","bronzor","bruxish","budew","buizel","bulbasaur","buneary","bunnelby","burmy","butterfree","cacnea","cacturne","camerupt","carbink","carnivine","carracosta","carvanha","cascoon","castform","caterpie","celebi","chandelure","chansey","charizard","charjabug","charmander","charmeleon","chatot","cherrim","cherubi","chesnaught","chespin","chikorita","chimchar","chimecho","chinchou","chingling","cinccino","clamperl","clauncher","clawitzer","claydol","clefable","clefairy","cleffa","cloyster","cobalion","cofagrigus","combee","combusken","conkeldurr","corphish","corsola","cottonee","cradily","cranidos","crawdaunt","cresselia","croagunk","crobat","croconaw","crustle","cryogonal","cubchoo","cubone","cutiefly","cyndaquil","darkrai","darmanitan","darumaka","dedenne","deerling","deino","delcatty","delibird","delphox","deoxys","dewgong","dewott","dialga","diancie","diggersby","diglett","ditto","dodrio","doduo","donphan","doublade","dragalge","dragonair","dragonite","drampa","drapion","dratini","drifblim","drifloon","drilbur","drowzee","druddigon","ducklett","dugtrio","dunsparce","duosion","durant","dusclops","dusknoir","duskull","dustox","dwebble","eelektrik","eelektross","eevee","ekans","electabuzz","electivire","electrike","electrode","elekid","elgyem","emboar","emolga","empoleon","entei","escavalier","espeon","espurr","excadrill","exeggcute","exeggutor","exploud","farfetch'd","fearow","feebas","fennekin","feraligatr","ferroseed","ferrothorn","finneon","flaaffy","flabébé","flareon","fletchinder","fletchling","floatzel","floette","florges","flygon","foongus","forretress","fraxure","frillish","froakie","frogadier","froslass","furfrou","furret","gabite","gallade","galvantula","garbodor","garchomp","gardevoir","gastly","gastrodon","genesect","gengar","geodude","gible","gigalith","girafarig","giratina","glaceon","glalie","glameow","gligar","gliscor","gloom","gogoat","golbat","goldeen","golduck","golem","golett","golurk","goodra","goomy","gorebyss","gothita","gothitelle","gothorita","gourgeist","granbull","graveler","greninja","grimer","grotle","groudon","grovyle","growlithe","grubbin","grumpig","gulpin","gurdurr","gyarados","happiny","hariyama","haunter","hawlucha","haxorus","heatmor","heatran","heliolisk","helioptile","heracross","herdier","hippopotas","hippowdon","hitmonchan","hitmonlee","hitmontop","hooh","honchkrow","honedge","hoopa","hoothoot","hoppip","horsea","houndoom","houndour","huntail","hydreigon","hypno","igglybuff","illumise","infernape","inkay","ivysaur","jellicent","jigglypuff","jirachi","jolteon","joltik","jumpluff","jynx","kabuto","kabutops","kadabra","kakuna","kangaskhan","karrablast","kecleon","keldeo","kingdra","kingler","kirlia","klang","klefki","klink","klinklang","koffing","komala","krabby","kricketot","kricketune","krokorok","krookodile","kyogre","kyurem","lairon","lampent","landorus","lanturn","lapras","larvesta","larvitar","latias","latios","leafeon","leavanny","ledian","ledyba","lickilicky","lickitung","liepard","lileep","lilligant","lillipup","linoone","litleo","litten","litwick","lombre","lopunny","lotad","loudred","lucario","ludicolo","lugia","lumineon","lunala","lunatone","luvdisc","luxio","luxray","machamp","machoke","machop","magby","magcargo","magearna","magikarp","magmar","magmortar","magnemite","magneton","magnezone","makuhita","malamar","mamoswine","manaphy","mandibuzz","manectric","mankey","mantine","mantyke","maractus","mareep","marill","marowak","marshtomp","masquerain","mawile","medicham","meditite","meganium","meloetta","meowstic","meowth","mesprit","metagross","metang","metapod","mewtwo","mew","mienfoo","mienshao","mightyena","milotic","miltank","mimejr","mimikkyu","minccino","minun","misdreavus","mismagius","moltres","monferno","mothim","mrmime","mudkip","muk","munchlax","munna","murkrow","musharna","natu","nidoking","nidoqueen","nidoran","nidoran♂","nidorina","nidorino","nincada","ninetales","ninjask","noctowl","noibat","noivern","nosepass","numel","nuzleaf","octillery","oddish","omanyte","omastar","onix","oshawott","pachirisu","palkia","palpitoad","pancham","pangoro","panpour","pansage","pansear","paras","parasect","patrat","pawniard","pelipper","persian","petilil","phanpy","phantump","phione","pichu","pidgeot","pidgeotto","pidgey","pidove","pignite","pikachu","pikipek","piloswine","pineco","pinsir","piplup","plusle","politoed","poliwag","poliwhirl","poliwrath","ponyta","poochyena","popplio","porygon","porygon","porygonz","primeape","prinplup","probopass","psyduck","pumpkaboo","pupitar","purrloin","purugly","pyroar","quagsire","quilava","quilladin","qwilfish","raichu","raikou","ralts","rampardos","rapidash","raticate","rattata","rayquaza","regice","regigigas","regirock","registeel","relicanth","remoraid","reshiram","reuniclus","rhydon","rhyhorn","rhyperior","riolu","rockruff","roggenrola","roselia","roserade","rotom","rowlet","rufflet","sableye","salamence","salandit","samurott","sandile","sandshrew","sandslash","sawk","sawsbuck","scatterbug","sceptile","scizor","scolipede","scrafty","scraggy","scyther","seadra","seaking","sealeo","seedot","seel","seismitoad","sentret","serperior","servine","seviper","sewaddle","sharpedo","shaymin","shedinja","shelgon","shellder","shellos","shelmet","shieldon","shiftry","shinx","shroomish","shuckle","shuppet","sigilyph","silcoon","simipour","simisage","simisear","skarmory","skiddo","skiploom","skitty","skorupi","skrelp","skuntank","slaking","slakoth","sliggoo","slowbro","slowking","slowpoke","slugma","slurpuff","smeargle","smoochum","sneasel","snivy","snorlax","snorunt","snover","snubbull","solgaleo","solosis","solrock","spearow","spewpa","spheal","spinarak","spinda","spiritomb","spoink","spritzee","squirtle","stantler","staraptor","staravia","starly","starmie","staryu","steelix","stoutland","stunfisk","stunky","sudowoodo","suicune","sunflora","sunkern","surskit","swablu","swadloon","swalot","swampert","swanna","swellow","swinub","swirlix","swoobat","sylveon","taillow","talonflame","tangela","tangrowth","tapu koko","tauros","teddiursa","tentacool","tentacruel","tepig","terrakion","throh","thundurus","timburr","tirtouga","togedemaru","togekiss","togepi","togetic","torchic","torkoal","tornadus","torterra","totodile","toxicroak","tranquill","trapinch","treecko","trevenant","tropius","trubbish","turtwig","tympole","tynamo","typhlosion","tyranitar","tyrantrum","tyrogue","tyrunt","umbreon","unfezant","unown","ursaring","uxie","vanillish","vanillite","vanilluxe","vaporeon","venipede","venomoth","venonat","venusaur","vespiquen","vibrava","victini","victreebel","vigoroth","vikavolt","vileplume","virizion","vivillon","volbeat","volcanion","volcarona","voltorb","vullaby","vulpix","wailmer","wailord","walrein","wartortle","watchog","weavile","weedle","weepinbell","weezing","whimsicott","whirlipede","whiscash","whismur","wigglytuff","wingull","wobbuffet","woobat","wooper","wormadam","wurmple","wynaut","xatu","xerneas","yamask","yanma","yanmega","yungoos","yveltal","zangoose","zapdos","zebstrika","zekrom","zigzagoon","zoroark","zorua","zubat","zweilous","zygarde"];
+TrainingDatas["Original Pokemon"] = ["abra","aerodactyl","alakazam","arbok","arcanine","articuno","beedrill","bellsprout","blastoise","bulbasaur","butterfree","caterpie","chansey","charizard","charmander","charmeleon","clefable","clefairy","cloyster","cubone","dewgong","diglett","ditto","dodrio","doduo","dragonair","dragonite","dratini","drowzee","dugtrio","eevee","ekans","electabuzz","electrode","exeggcute","exeggutor","farfetchd","fearow","flareon","gastly","gengar","geodude","gloom","golbat","goldeen","golduck","golem","graveler","grimer","growlithe","gyarados","haunter","hitmonchan","hitmonlee","horsea","hypno","ivysaur","jigglypuff","jolteon","jynx","kabuto","kabutops","kadabra","kakuna","kangaskhan","kingler","koffing","krabby","lapras","lickitung","machamp","machoke","machop","magikarp","magmar","magnemite","magneton","mankey","marowak","meowth","metapod","mew","mewtwo","mime","moltres","muk","nidoking","nidoqueen","nidoran","nidoran","nidorina","nidorino","ninetales","oddish","omanyte","omastar","onix","paras","parasect","persian","pidgeot","pidgeotto","pidgey","pikachu","pinsir","poliwag","poliwhirl","poliwrath","ponyta","porygon","primeape","psyduck","raichu","rapidash","raticate","rattata","rhydon","rhyhorn","sandshrew","sandslash","scyther","seadra","seaking","seel","shellder","slowbro","slowpoke","snorlax","spearow","squirtle","starmie","staryu","tangela","tauros","tentacool","tentacruel","vaporeon","venomoth","venonat","venusaur","victreebel","vileplume","voltorb","vulpix","wartortle","weedle","weepinbell","weezing","wigglytuff","zapdos","zubat"];
 TrainingDatas["Roman Deities"] = ["abeona","abudantia","adeona","aequitas","aera","aeternitas","africus","alemonia","angerona","angita","anna","antevorte","aphrodite","apollo","aquilo","ares","artemis","asclepius","athena","attis","aurora","auster","bacchus","bellona","bona","bubona","camenaees","candelifera","cardea","carmenta","carnea","ceres","cinxia","clementia","cloacina","coelus","concordia","conditor","consus","convector","copia","corus","cunina","cupid","cybele","dea","dea","decima","demeter","devera","deverra","dia","diana","dis","disciplina","discordia","dius","egestes","empanda","endovelicus","eventus","fabulinus","fama","fauna","faunus","faunus","faustitas","favonius","febris","felicitas","feronia","fides","flora","fontus","fornax","fortuna","fulgora","furies","furina","hephaestus","hera","hercules","hermes","hestia","honos","indivia","isis","janus","juno","jupiter","juturna","juventas","lactans","lares","laverna","liber","libera","liberalitas","libertas","libitina","lima","lucifer","lucina","luna","maia","maiesta","manes","mania","mars","matuta","meditrina","mefitas","mellona","mena","menrva","mens","mercury","messor","minerva","mithras","moneta","mors","morta","muta","mutinus","naenia","necessitas","nemestrinus","neptune","nona","nox","nundina","obarator","occator","ops","orbona","orcus","pales","parcaes","pax","penates","picus","pietas","poena","pomona","portunes","porus","poseidon","postverta","potina","priapus","prorsa","providentia","pudicitia","puta","quirinus","quiritis","robigo","robigus","roma","rumina","salus","sancus","saritor","saturn","securitas","semonia","serapis","silvanus","sol","sol","somnus","sors","spes","stata","stimula","strenua","suadela","subrincinator","summanus","tellus","tempestes","terminus","terra","trivia","vacuna","veiovis","venus","veritas","vertumnus","vesta","victoria","viduus","viriplacaa","virtus","vitumnus","volturnus","volumna","vulcan","vulturnus","zeus"];
 TrainingDatas["Roman Emperor Forenames"] = ["aemilian","alexander","alexios","anastasios","anastasius","andronikos","anthemius","antoninus","arcadius","artabasdos","augustus","aurelian","avitus","balbinus","basil","basiliscus","caligula","caracalla","carinus","carus","claudius","claudius","commodus","constans","constans","constantine","constantius","constantius","didius","diocletian","domitian","elagabalus","florian","galba","galerius","gallienus","geta","glycerius","gordian","gordian","gratian","hadrian","heraclius","heraklonas","honorius","hostilian","irene","isaac","joannes","john","jovian","julian","julius","justin","justinian","leo","leontios","libius","licinius","lucius","macrinus","magnus","majorian","manuel","marcian","marcus","maurice","maxentius","maximian","maximinus","michael","nero","nerva","nikephoros","numerian","olybrius","otho","pertinax","petronius","philippikos","phocas","probus","pupienus","quintillus","romanos","romulus","septimius","severus","staurakios","tacitus","theodora","theodosios","theodosius","theodosius","theophilos","tiberius","tiberius","titus","trajan","trebonianus","valens","valentinian","valerian","vespasian","vetranio","vitellius","zeno","zoe"];
 TrainingDatas["Swedish Forenames"] = ["adam","adrian","agnes","albin","alex","alexander","alfred","ali","alice","alicia","alma","alva","alvin","amanda","amelia","anna","anton","aron","arvid","astrid","august","axel","benjamin","carl","casper","celine","charlie","colin","cornelia","daniel","dante","david","ebba","ebbe","eddie","edith","edvin","edward","elias","elin","elina","elis","elisa","elise","ella","ellen","ellie","ellinor","elliot","elsa","elton","elvin","elvira","emelie","emil","emilia","emma","emmy","erik","ester","felicia","felix","filip","filippa","frank","freja","gabriel","greta","gustav","hampus","hanna","harry","hedda","henry","hilda","hilma","hjalmar","hugo","ida","ines","ingrid","iris","isabella","isabelle","isak","ivar","jack","jacob","jasmine","joel","john","joline","jonathan","josef","julia","julian","juni","kevin","klara","leah","leia","leo","leon","liam","lilly","linn","linnea","linus","lisa","liv","livia","loke","loui","lova","love","lovis","lovisa","lucas","ludvig","luna","lykke","maja","majken","malte","maria","matilda","matteo","max","maximilian","meja","melissa","melker","melvin","milo","milton","minna","mio","mira","moa","mohamed","molly","my","märta","nathalie","nellie","neo","nicole","nils","noah","noel","nora","nova","novalie","oliver","olivia","olle","oscar","otto","rasmus","ronja","rut","saga","sally","sam","samuel","sara","sebastian","selma","sigge","signe","sigrid","simon","siri","sixten","sofia","stella","stina","svante","svea","tage","thea","theo","theodor","tilda","tilde","tindra","tuva","tyra","valter","vera","victoria","vidar","viggo","viktor","vilgot","ville","vincent","wilhelm","william","wilma","wilmer"];
@@ -56998,8 +57144,10 @@ Main.TWITTER_URL = "https://twitter.com/Sam_Twidale";
 Main.BALL_CONTAINER_CLASSNAME = "ballContainer";
 Main.CONTENT_WRAPPER_CLASSNAME = "contentWrapper";
 Main.INNER_CONTENT_CLASSNAME = "innerContent";
+Main.FRAME_TIMEOUT_TIME_SECONDS = 3;
 Main.GRAVITY_STRENGTH = 600;
-Main.topicGroups = [["Animals","Fish","Pokemon"],["American Forenames","Italian Forenames","Japanese Forenames","Swedish Forenames","Tolkienesque Forenames"],["English Towns","German Towns","Japanese Cities","Swiss Cities"]];
+Main.topicGroups = [["Original Pokemon","Animals","Fish","Modern Pokemon"],["American Forenames","Italian Forenames","Japanese Forenames","Swedish Forenames","Tolkienesque Forenames"],["English Towns","German Towns","Japanese Cities","Swiss Cities"]];
+Main.backgroundTappingTopic = "Original Pokemon";
 js_Boot.__toStr = {}.toString;
 nape_Config.epsilon = 1e-8;
 nape_Config.fluidAngularDragFriction = 2.5;
