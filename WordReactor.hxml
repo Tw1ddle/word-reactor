@@ -1,0 +1,5 @@
+-main Main
+
+-lib markov-namegen
+-lib nape
+-lib sure
