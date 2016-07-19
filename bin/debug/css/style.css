@@ -10,6 +10,12 @@
 	padding: 0;
 	
 	-ms-overflow-style: none;
+	
+	text-decoration: none;
+}
+
+*:hover {
+	cursor: default;
 }
 
 ::-webkit-scrollbar {
@@ -20,6 +26,15 @@ html, body {
 	width: 100%;
 	height: 100%;
 	overflow: hidden;
+}
+
+canvas {
+	position: absolute;
+}
+
+h1 {
+	font-size: 32px;
+	color: white;
 }
 
 #simulation {
@@ -43,10 +58,6 @@ img {
 	user-select: none;
 }
 
-.ballContainer {
-	position: absolute;
-}
-
 .contentWrapper {
 	display: flex;
 	flex-direction: column;
@@ -64,11 +75,18 @@ img {
 	transform: translateZ( 100px );
 }
 
-h1 {
-	font-size: 40px;
-	color: white;
+.ballContainer {
+	position: absolute;
 }
 
-canvas {
-	position: absolute;
+.wordBall {
+	
+}
+
+.topicBall {
+	
+}
+
+.instructionsBall {
+	
 }

@@ -97,11 +97,12 @@ class Main {
 	
 	// Groups of related word generation topics
 	private static var topicGroups:Array<Array<String>> = [
-		["Animals", "Fish", "Pokemon"],
+		["Original Pokemon", "Animals", "Fish", "Modern Pokemon"],
 		["American Forenames", "Italian Forenames", "Japanese Forenames", "Swedish Forenames", "Tolkienesque Forenames"],
 		["English Towns", "German Towns", "Japanese Cities", "Swiss Cities"]
 	];
-	private static var backgroundTappingTopic = "Pokemon"; // The topic used to generate balls when tapping the background
+	private static var backgroundTappingTopic = "Original Pokemon"; // The topic used to generate balls when tapping the background
+	private var currentTopic = topicGroups[0]; // Default to Pokemon group
 	
 	private var div:DivElement = cast Browser.document.getElementById(ID.simulation); // The div that contains the whole simulation
 	private var lastAnimationTime:Float = 0.0; // Last time from requestAnimationFrame
@@ -124,8 +125,12 @@ class Main {
 	private var pointerPosition:Vec2; // Last pointer position
 	private var isPointerDown:Bool; // Is the pointer down or not
 	
-	private var wordFontPixelSize:Int = 14; // The font size of the word ball text
-	private var wordBallPixelPadding:Int = 10; // The extra space in addition to the ball text width
+	private var wordFontSizePixels:Int; // The font size of the word ball text
+	private var topicFontSizePixels:Int; // The font size of the word ball text
+	private var wordBallPixelPadding:Int; // The extra space in addition to the ball text width
+	private var topicBallPixelPadding:Int; // The extra space in addition to the ball text width
+	
+	private var isFirstRun:Bool = true; // Whether this is our first time running, in order to default to the Pokemon preset
 	
 	private static function main():Void {
 		var main = new Main();
@@ -136,6 +141,8 @@ class Main {
 	}
 	
 	private inline function onWindowLoaded():Void {
+		generatorMap = new StringMap<GeneratorTriePair>();
+		
 		resetSimulation();
 		
 		// Create pointer event methods
@@ -174,6 +181,8 @@ class Main {
 			napeHand.anchor1.setxy(x, y);
 			pointerPosition.setxy(x, y);
 			napeHand.active = false;
+			
+			backgroundTappingTopic = currentTopic[Std.int(Math.random() * currentTopic.length)]; // Change the background spawning topic every time the mouse is released
 		};
 		
 		// Setup event listeners
@@ -228,9 +237,9 @@ class Main {
 		if (napeHand.active) {
 			napeHand.body2.angularVel *= 0.95; // Diminish the currently held ball's angular velocity
 		} else if (isPointerDown) {
-			var decorativeBall:Bool = Math.random() < 0.15;
+			var decorativeBall:Bool = Math.random() < 0.25;
 			if (decorativeBall) {
-				var size = 50; // TODO find size
+				var size = Std.int(Math.random() * 40 + 20);
 				decorativeBalls.add(createDecorativeBall(size, pointerPosition.x, pointerPosition.y));
 			} else {
 				wordBalls.add(createWordBall(pointerPosition.x, pointerPosition.y, backgroundTappingTopic));
@@ -262,7 +271,12 @@ class Main {
 		div.innerHTML = ""; // Remove all the old graphical elements
 		lastAnimationTime = 0.0;
 		
-		generatorMap = new StringMap<GeneratorTriePair>();
+		var screenWidth:Float = Browser.window.innerWidth;
+		var screenHeight:Float = Browser.window.innerHeight;
+		wordFontSizePixels = Std.int(screenWidth * 0.005);
+		wordBallPixelPadding = wordFontSizePixels;
+		topicFontSizePixels = Std.int(screenWidth * 0.01);
+		topicBallPixelPadding = topicFontSizePixels;
 		
 		napeGravity = Vec2.weak(0, GRAVITY_STRENGTH);
 		napeSpace = new Space(napeGravity); // The Nape simulation space
@@ -284,20 +298,25 @@ class Main {
 		decorativeBalls = new BodyList();
 		
 		topicBalls = new BodyList();
-		var topics = topicGroups[Std.int(Math.random() * topicGroups.length)];
-		for (topic in topics) {
-			topicBalls.add(createTopicBall(150, 200, 300, topic)); // TODO
+		
+		if (!isFirstRun) {
+			currentTopic = topicGroups[Std.int(Math.random() * topicGroups.length)];
+		}
+		for (i in 0...currentTopic.length) {
+			topicBalls.add(createTopicBall(screenWidth * 0.5, screenHeight * 0.5, currentTopic[i]));
 		}
 		
 		wordBalls = new BodyList();
 		
-		instructionsBall = createInstructions(320, 200, 200); // TODO
-		githubBall = createClickableBall(128, 400, 400, function() { Browser.window.open(GITHUB_URL); }, '<img src="assets/images/githublogo.png" />');
-		twitterBall = createClickableBall(128, 400, 400, function() { Browser.window.open(TWITTER_URL); }, '<img src="assets/images/twitterlogo.png" />');
-		resetBall = createClickableBall(128, 400, 400, function() { resetSimulation(); }, '<img src="assets/images/reseticon.png" />');
+		instructionsBall = createInstructions(300, screenWidth * 0.5, screenHeight * 0.5); // NOTE fixed size
+		githubBall = createClickableBall(128, screenWidth * 0.2, screenHeight * 0.1, function() { Browser.window.open(GITHUB_URL); }, '<img src="assets/images/githublogo.png" />');
+		twitterBall = createClickableBall(128, screenWidth * 0.5, screenHeight * 0.1, function() { Browser.window.open(TWITTER_URL); }, '<img src="assets/images/twitterlogo.png" />');
+		resetBall = createClickableBall(128, screenWidth * 0.8, screenHeight * 0.1, function() { resetSimulation(); }, '<img src="assets/images/reseticon.png" />');
 		
 		isPointerDown = false;
 		pointerPosition = new Vec2(0, 0);
+		
+		isFirstRun = false;
 	}
 	
 	/**
@@ -342,8 +361,10 @@ class Main {
 	/**
 	 * Creates a ball that contains a generated word
 	 */
-	private inline function createTopicBall(size:Int, startX:Int, startY:Int, topic:String):Body {
+	private inline function createTopicBall(startX:Float, startY:Float, topic:String):Body {
 		var content = createWrappedContent();
+		
+		var size = topic.length * topicFontSizePixels + topicBallPixelPadding;
 		
 		var circleContainer = createVisualBall(size, startX, startY, content);
 		div.appendChild(circleContainer);
@@ -364,7 +385,7 @@ class Main {
 		Sure.sure(words != null);
 		var word = generate(topic);
 		
-		var size = word.length * wordFontPixelSize + wordBallPixelPadding;
+		var size = word.length * wordFontSizePixels + wordBallPixelPadding;
 		
 		var circleContainer = createVisualBall(size, startX, startY, content);
 		div.appendChild(circleContainer);
@@ -394,18 +415,20 @@ class Main {
 		circle.width = size;
 		circle.height = size;
 		
+		var theme:Array<String> = ["#000000", "#252525", "#525252", "#737373", "#969696", "#bdbdbd", "#d9d9d9", "#f0f0f0", "#ffffff"];
 		var ctx = circle.getContext2d();
-		var num_circles = 1 + Std.int(Math.random() * 10);
+		var numCircles = 1 + Std.int(Math.random() * theme.length);
+		var currentCircle:Int = 0;
 		var size = size;
 		var i = size;
 		while (i > 0) {
-			var val = Std.string(Std.int(Math.random() * 255)); // TODO follow a gradient/theme?
-			ctx.fillStyle = "rgb(" + val + "," + val + "," + val + ")";
+			ctx.fillStyle = theme[currentCircle];
 			ctx.beginPath();
 			ctx.arc(size / 2, size / 2, i / 2, 0, Math.PI * 2);
 			ctx.closePath();
 			ctx.fill();
-			i -= Std.int(size / num_circles);
+			i -= Std.int(size / numCircles);
+			currentCircle++;
 		}
 		
 		circleContainer.appendChild(circle);
@@ -418,11 +441,11 @@ class Main {
 	/**
 	 * Creates a ball containing usage instructions and a click-to-reset function
 	 */
-	private inline function createInstructions(size:Int, startX:Int, startY:Int):Body {
+	private inline function createInstructions(size:Float, startX:Float, startY:Float):Body {
 		var content = createWrappedContent();
 
 		var span = cast content.childNodes[0];
-		span.innerHTML = '<h1>Reactor</h1><br/><br/><span style="font-size:15px;"><strong>Instructions:</strong><br/><br/>1. Drag and collide balls.<br/>2. Tap the background.<br/>3. Double tap here.<br/>4. Have fun!</span>';
+		span.innerHTML = '<h1>Word Reactor</h1><br/><span style="font-size:15px;"><strong>Instructions:</strong><br/><br/>1. Drag and collide balls.<br/>2. Tap the background.<br/>3. Tap reset ball.<br/>4. Have fun!</span>';
 		var circleContainer = createVisualBall(size, startX, startY, content);
 		div.appendChild(circleContainer);
 		var ball = createNapeBall(size, startX, startY);
@@ -433,16 +456,9 @@ class Main {
 	/**
 	 * Creates a ball containing a clickable image that opens a URL
 	 */
-	private inline function createClickableBall(size:Int, startX:Int, startY:Int, callback:Void->Void, innerHTML:String):Body {
+	private inline function createClickableBall(size:Float, startX:Float, startY:Float, callback:Void->Void, innerHTML:String):Body {
 		var content = createWrappedContent();
-		var circleContainer = createVisualBall(
-		size,
-		startX,
-		startY,
-		content,
-		false,
-		null
-		);
+		var circleContainer = createVisualBall(size, startX, startY, content, false, null);
 		div.appendChild(circleContainer);
 		
 		circleContainer.addEventListener("click", function(e:Dynamic):Void {
@@ -459,7 +475,7 @@ class Main {
 	/**
 	 * Helper function for creating a canvas visual of a Nape ball
 	 */
-	private inline function createVisualBall(size:Int, startX:Float, startY:Float, innerBody:DivElement, useCanvas:Bool = true, ?fillTechnique:CanvasRenderingContext2D->Int->Int->Void):DivElement {
+	private inline function createVisualBall(size:Float, startX:Float, startY:Float, innerBody:DivElement, useCanvas:Bool = true, ?fillTechnique:CanvasRenderingContext2D->Int->Int->Void):DivElement {
 		var container = Browser.document.createDivElement();
 		container.className = BALL_CONTAINER_CLASSNAME;
 		container.style.width = Std.string(size) + "px";
@@ -469,11 +485,11 @@ class Main {
 		
 		if(useCanvas) {
 			var circle:CanvasElement = Browser.document.createCanvasElement();
-			circle.width = size;
-			circle.height = size;
+			circle.width = Std.int(size);
+			circle.height = Std.int(size);
 			var ctx:CanvasRenderingContext2D = circle.getContext2d();
 			if (fillTechnique != null) {
-				fillTechnique(ctx, size, size);
+				fillTechnique(ctx, Std.int(size), Std.int(size));
 			} else {
 				ctx.fillStyle = "solid";
 				ctx.beginPath();
@@ -491,7 +507,7 @@ class Main {
 	/**
 	 * Helper function for creating a Nape ball
 	 */
-	private inline function createNapeBall(size:Int, startX:Float, startY:Float):Body {
+	private inline function createNapeBall(size:Float, startX:Float, startY:Float):Body {
 		var ball = new Body(BodyType.DYNAMIC);
 		ball.position.setxy(startX, startY);
 		ball.shapes.add(new Circle(Std.int(size / 2)));
@@ -505,8 +521,7 @@ class Main {
 	 * Collision callback that runs when two word-containing balls collide
 	 */
 	private inline function wordOnWordCollision(cb:InteractionCallback):Void {
-		//var ball = createDecorativeBall(50, Std.int(cb.int1.castBody.position.x), Std.int(cb.int1.castBody.position.y)); // TODO dynamic resize balls?
-		//decorativeBalls.add(ball); // TODO
+		// Unimplemented
 	}
 	
 	/**
@@ -515,9 +530,7 @@ class Main {
 	private inline function topicOnTopicCollision(cb:InteractionCallback):Void {
 		var word1:UserData = cast cb.int1.userData.sprite;
 		var word2:UserData = cast cb.int2.userData.sprite;
-		
-		// TODO create a hybrid word or a random one from one or the other?
-		var ball = createWordBall(Std.int(cb.int1.castBody.position.x), Std.int(cb.int1.castBody.position.y), word1.topic); // TODO size
+		var ball = createWordBall(Std.int(cb.int1.castBody.position.x), Std.int(cb.int1.castBody.position.y), word1.topic); // NOTE could create a hybrid word at this point, rather than just using the held topic
 		wordBalls.add(ball);
 	}
 	
@@ -532,17 +545,14 @@ class Main {
 			while (word == null || word.length == 0) {
 				word = pair.generator.generate();
 			}
-			return word;
+			return StringTools.replace(word, "#", ""); // Strip hashes
 		}
-		
 		var word = makeWord();
-		while (pair.trie.find(word)) {
+		while (pair.trie.find(word) || (word.length < 5 || word.length > 13)) { // No really short or super long words. NOTE could make this topic specific
 			word = makeWord();
 		}
-
-		var stripHashes = StringTools.replace(word, "#", "");
-		var firstLetter = stripHashes.charAt(0).toUpperCase();
-		return firstLetter + stripHashes.substring(1, stripHashes.length);
+		var firstLetter = word.charAt(0).toUpperCase();
+		return firstLetter + word.substring(1, word.length);
 	}
 	
 	/**
