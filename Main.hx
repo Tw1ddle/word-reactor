@@ -102,7 +102,7 @@ class Main {
 		["English Towns", "German Towns", "Japanese Cities", "Swiss Cities"]
 	];
 	private static var backgroundTappingTopic = "Original Pokemon"; // The topic used to generate balls when tapping the background
-	private var currentTopic = topicGroups[0]; // Default to Pokemon group
+	private var currentTopic:Array<String> = topicGroups[0]; // Default to Pokemon group
 	
 	private var div:DivElement = cast Browser.document.getElementById(ID.simulation); // The div that contains the whole simulation
 	private var lastAnimationTime:Float = 0.0; // Last time from requestAnimationFrame
@@ -115,7 +115,6 @@ class Main {
 	private var worldBorder:Body; // Nape screen borders
 	private var wordBallCollisionType:CbType; // Callback type for when two balls that contain words collide
 	private var topicBallCollisionType:CbType; // Callback type for when two balls that contain topics collide
-	private var decorativeBalls:BodyList; // Balls that are purely decorative
 	private var topicBalls:BodyList; // Balls that contain topics
 	private var wordBalls:BodyList; // Balls that contain generated words
 	private var instructionsBall:Body; // The instructions ball
@@ -176,10 +175,8 @@ class Main {
 			napeHand.anchor1.setxy(x, y);
 			pointerPosition.setxy(x, y);
 		};
-		var onPointerUp = function(x:Int, y:Int):Void {
+		var onPointerUp = function():Void {
 			isPointerDown = false;
-			napeHand.anchor1.setxy(x, y);
-			pointerPosition.setxy(x, y);
 			napeHand.active = false;
 			
 			backgroundTappingTopic = currentTopic[Std.int(Math.random() * currentTopic.length)]; // Change the background spawning topic every time the mouse is released
@@ -188,37 +185,49 @@ class Main {
 		// Setup event listeners
 		Browser.document.addEventListener("mousedown", function(e:Dynamic):Void {
 			onPointerDown(e.clientX, e.clientY);
+			e.preventDefault();
 			
 			#if debug
 			if (e.which == 3) { // Debug right click to reset
 				resetSimulation();
 			}
 			#end
-		}, false);
+		}, true);
 		Browser.document.addEventListener("mousemove", function(e:Dynamic):Void {
 			onPointerMove(e.clientX, e.clientY);
-		}, false);
+			e.preventDefault();
+		}, true);
 		Browser.document.addEventListener("mouseup", function(e:Dynamic):Void {
-			onPointerUp(e.clientX, e.clientY);
-		}, false);
+			onPointerUp();
+			e.preventDefault();
+		}, true);
 		Browser.document.addEventListener("touchstart", function(e:Dynamic):Void {
 			onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
-		}, false);
+			e.preventDefault();
+		}, true);
 		Browser.document.addEventListener("touchmove", function(e:Dynamic):Void {
 			onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
-		}, false);
+			e.preventDefault();
+		}, true);
 		Browser.document.addEventListener("touchend", function(e:Dynamic):Void {
-			onPointerUp(e.touches[0].clientX, e.touches[0].clientY);
-		}, false);
+			onPointerUp();
+			e.preventDefault();
+		}, true);
+		Browser.document.addEventListener("touchcancel", function(e:Dynamic):Void {
+			onPointerUp();
+			e.preventDefault();
+		}, true);
 		Browser.window.addEventListener("resize", function():Void {
 			// NOTE can only really resize by squishing the balls together, so not doing it for now
-		}, false);
-		Browser.window.addEventListener("deviceorientation", function(e:Dynamic):Void {
-			if(e.beta != null) {
-				napeGravity.x = Math.sin(e.gamma * Math.PI / 180);
-				napeGravity.y = Math.sin((Math.PI / 4) + e.beta * Math.PI / 180);
+		}, true);
+		Browser.window.addEventListener("orientationchange", function():Void {
+			switch(Browser.window.orientation) {
+				case -90, 90:
+					napeGravity = Vec2.weak(GRAVITY_STRENGTH, 0);
+				default:
+					napeGravity = Vec2.weak(0, GRAVITY_STRENGTH);
 			}
-		}, false);
+		});
 		
 		Browser.window.requestAnimationFrame(animate); // Start the animation
 	}
@@ -237,13 +246,7 @@ class Main {
 		if (napeHand.active) {
 			napeHand.body2.angularVel *= 0.95; // Diminish the currently held ball's angular velocity
 		} else if (isPointerDown) {
-			var decorativeBall:Bool = Math.random() < 0.25;
-			if (decorativeBall) {
-				var size = Std.int(Math.random() * 40 + 20);
-				decorativeBalls.add(createDecorativeBall(size, pointerPosition.x, pointerPosition.y));
-			} else {
-				wordBalls.add(createWordBall(pointerPosition.x, pointerPosition.y, backgroundTappingTopic));
-			}
+			wordBalls.add(createWordBall(pointerPosition.x, pointerPosition.y, backgroundTappingTopic));
 		}
 		
 		for (ball in wordBalls) {
@@ -257,9 +260,6 @@ class Main {
 				updateBallStyle(ball.userData.sprite.style, ball.position.x, ball.position.y, ball.rotation);
 			}
 		}
-		for(ball in decorativeBalls) {
-			updateBallStyle(ball.userData.sprite.style, ball.position.x, ball.position.y, ball.rotation);
-		}
 		
 		Browser.window.requestAnimationFrame(animate);
 	}
@@ -268,7 +268,9 @@ class Main {
 	 * Resets the simulation to a sensible starting state
 	 */
 	private inline function resetSimulation():Void {
-		div.innerHTML = ""; // Remove all the old graphical elements
+		while (div.firstChild != null) {
+			div.removeChild(div.firstChild); // Remove all the old graphical elements
+		}
 		lastAnimationTime = 0.0;
 		
 		var screenWidth:Float = Browser.window.innerWidth;
@@ -280,7 +282,14 @@ class Main {
 		topicFontSizePixels = Std.int(Math.max(screenWidth * 0.02, 20));
 		topicBallPixelPadding = 30;
 		
-		napeGravity = Vec2.weak(0, GRAVITY_STRENGTH);
+		if (Browser.window.matchMedia("(orientation: portrait)").matches) {
+			napeGravity = Vec2.weak(0, GRAVITY_STRENGTH);
+		} else if (Browser.window.matchMedia("(orientation: landscape)").matches) {
+			napeGravity = Vec2.weak(GRAVITY_STRENGTH, 0);
+		} else {
+			napeGravity = Vec2.weak(0, GRAVITY_STRENGTH);
+		}
+		
 		napeSpace = new Space(napeGravity); // The Nape simulation space
 		napeHand = new PivotJoint(napeSpace.world, null, Vec2.weak(), Vec2.weak());
 		napeHand.active = false;
@@ -296,8 +305,6 @@ class Main {
 		
 		topicBallCollisionType = new CbType();
 		napeSpace.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, topicBallCollisionType, topicBallCollisionType, topicOnTopicCollision));
-		
-		decorativeBalls = new BodyList();
 		
 		topicBalls = new BodyList();
 		
@@ -360,7 +367,6 @@ class Main {
 		}
 		
 		outer.appendChild(inner);
-		
 		return outer;
 	}
 	
@@ -401,46 +407,6 @@ class Main {
 		var ball = createNapeBall(radius, startX, startY);
 		ball.userData.sprite = userData;
 		ball.cbTypes.add(wordBallCollisionType);
-		return ball;
-	}
-	
-	/**
-	 * Creates an entirely decorative ball
-	 */
-	private inline function createDecorativeBall(size:Int, startX:Float, startY:Float):Body {
-		var circleContainer = Browser.document.createDivElement();
-		circleContainer.className = BALL_CONTAINER_CLASSNAME;
-		circleContainer.style.width = Std.string(size) + "px";
-		circleContainer.style.height = Std.string(size) + "px";
-		circleContainer.style.left = Std.string(startX);
-		circleContainer.style.top = Std.string(startY);
-		
-		div.appendChild(circleContainer);
-		
-		var circle = Browser.document.createCanvasElement();
-		circle.width = size;
-		circle.height = size;
-		
-		var theme:Array<String> = ["#000000", "#252525", "#525252", "#737373", "#969696", "#bdbdbd", "#d9d9d9", "#f0f0f0", "#ffffff"];
-		var ctx = circle.getContext2d();
-		var numCircles = 1 + Std.int(Math.random() * theme.length);
-		var currentCircle:Int = 0;
-		var size = size;
-		var i = size;
-		while (i > 0) {
-			ctx.fillStyle = theme[currentCircle];
-			ctx.beginPath();
-			ctx.arc(size / 2, size / 2, i / 2, 0, Math.PI * 2);
-			ctx.closePath();
-			ctx.fill();
-			i -= Std.int(size / numCircles);
-			currentCircle++;
-		}
-		
-		circleContainer.appendChild(circle);
-		
-		var ball = createNapeBall(size, startX, startY);
-		ball.userData.sprite = circleContainer;
 		return ball;
 	}
 	
@@ -486,8 +452,8 @@ class Main {
 		container.className = BALL_CONTAINER_CLASSNAME;
 		container.style.width = Std.string(size) + "px";
 		container.style.height = Std.string(size) + "px";
-		container.style.left = Std.string(startX);
-		container.style.top = Std.string(startY);
+		container.style.left = Std.string(startX) + "px";
+		container.style.top = Std.string(startY) + "px";
 		
 		if(useCanvas) {
 			var circle:CanvasElement = Browser.document.createCanvasElement();

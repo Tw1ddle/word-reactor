@@ -139,39 +139,53 @@ Main.prototype = {
 			_g.napeHand.get_anchor1().setxy(x1,y1);
 			_g.pointerPosition.setxy(x1,y1);
 		};
-		var onPointerUp = function(x2,y2) {
+		var onPointerUp = function() {
 			_g.isPointerDown = false;
-			_g.napeHand.get_anchor1().setxy(x2,y2);
-			_g.pointerPosition.setxy(x2,y2);
 			_g.napeHand.set_active(false);
 			Main.backgroundTappingTopic = _g.currentTopic[Std["int"](Math.random() * _g.currentTopic.length)];
 		};
+		var onOrientationChange = function() {
+		};
 		window.document.addEventListener("mousedown",function(e) {
 			onPointerDown(e.clientX,e.clientY);
-		},false);
+			e.preventDefault();
+		},true);
 		window.document.addEventListener("mousemove",function(e1) {
 			onPointerMove(e1.clientX,e1.clientY);
-		},false);
+			e1.preventDefault();
+		},true);
 		window.document.addEventListener("mouseup",function(e2) {
-			onPointerUp(e2.clientX,e2.clientY);
-		},false);
+			onPointerUp();
+			e2.preventDefault();
+		},true);
 		window.document.addEventListener("touchstart",function(e3) {
 			onPointerDown(e3.touches[0].clientX,e3.touches[0].clientY);
-		},false);
+			e3.preventDefault();
+		},true);
 		window.document.addEventListener("touchmove",function(e4) {
 			onPointerMove(e4.touches[0].clientX,e4.touches[0].clientY);
-		},false);
+			e4.preventDefault();
+		},true);
 		window.document.addEventListener("touchend",function(e5) {
-			onPointerUp(e5.touches[0].clientX,e5.touches[0].clientY);
-		},false);
+			onPointerUp();
+			e5.preventDefault();
+		},true);
+		window.document.addEventListener("touchcancel",function(e6) {
+			onPointerUp();
+			e6.preventDefault();
+		},true);
 		window.addEventListener("resize",function() {
-		},false);
-		window.addEventListener("deviceorientation",function(e6) {
-			if(e6.beta != null) {
-				_g.napeGravity.set_x(Math.sin(e6.gamma * Math.PI / 180));
-				_g.napeGravity.set_y(Math.sin(Math.PI / 4 + e6.beta * Math.PI / 180));
+		},true);
+		window.addEventListener("orientationchange",function() {
+			var _g2 = window.orientation;
+			switch(_g2) {
+			case -90:case 90:
+				_g.napeGravity = nape_geom_Vec2.get(600,0,true);
+				break;
+			default:
+				_g.napeGravity = nape_geom_Vec2.get(0,600,true);
 			}
-		},false);
+		});
 		window.requestAnimationFrame($bind(this,this.animate));
 	}
 	,animate: function(time) {
@@ -185,13 +199,7 @@ Main.prototype = {
 		if(this.napeHand.zpp_inner.active) {
 			var _g = this.napeHand.get_body2();
 			_g.set_angularVel(_g.zpp_inner.angvel * 0.95);
-		} else if(this.isPointerDown) {
-			var decorativeBall = Math.random() < 0.25;
-			if(decorativeBall) {
-				var size = Std["int"](Math.random() * 40 + 20);
-				this.decorativeBalls.add(this.createDecorativeBall(size,this.pointerPosition.get_x(),this.pointerPosition.get_y()));
-			} else this.wordBalls.add(this.createWordBall(this.pointerPosition.get_x(),this.pointerPosition.get_y(),Main.backgroundTappingTopic));
-		}
+		} else if(this.isPointerDown) this.wordBalls.add(this.createWordBall(this.pointerPosition.get_x(),this.pointerPosition.get_y(),Main.backgroundTappingTopic));
 		var _g1 = this.wordBalls.iterator();
 		while(_g1.hasNext()) {
 			var ball;
@@ -258,33 +266,11 @@ Main.prototype = {
 				return $r;
 			}(this))).get_y(),ball2.zpp_inner.rot);
 		}
-		var _g4 = this.decorativeBalls.iterator();
-		while(_g4.hasNext()) {
-			var ball3;
-			_g4.zpp_critical = false;
-			ball3 = _g4.zpp_inner.at(_g4.zpp_i++);
-			this.updateBallStyle(((function($this) {
-				var $r;
-				if(ball3.zpp_inner_i.userData == null) ball3.zpp_inner_i.userData = { };
-				$r = ball3.zpp_inner_i.userData;
-				return $r;
-			}(this))).sprite.style,((function($this) {
-				var $r;
-				if(ball3.zpp_inner.wrap_pos == null) ball3.zpp_inner.setupPosition();
-				$r = ball3.zpp_inner.wrap_pos;
-				return $r;
-			}(this))).get_x(),((function($this) {
-				var $r;
-				if(ball3.zpp_inner.wrap_pos == null) ball3.zpp_inner.setupPosition();
-				$r = ball3.zpp_inner.wrap_pos;
-				return $r;
-			}(this))).get_y(),ball3.zpp_inner.rot);
-		}
 		window.requestAnimationFrame($bind(this,this.animate));
 	}
 	,resetSimulation: function() {
 		var _g = this;
-		this.div.innerHTML = "";
+		while(this.div.firstChild != null) this.div.removeChild(this.div.firstChild);
 		this.lastAnimationTime = 0.0;
 		var screenWidth = window.innerWidth;
 		var screenHeight = window.innerHeight;
@@ -292,7 +278,7 @@ Main.prototype = {
 		this.wordBallPixelPadding = 20;
 		this.topicFontSizePixels = Std["int"](Math.max(screenWidth * 0.02,20));
 		this.topicBallPixelPadding = 30;
-		this.napeGravity = nape_geom_Vec2.get(0,600,true);
+		if(window.matchMedia("(orientation: portrait)").matches) this.napeGravity = nape_geom_Vec2.get(0,600,true); else if(window.matchMedia("(orientation: landscape)").matches) this.napeGravity = nape_geom_Vec2.get(600,0,true); else this.napeGravity = nape_geom_Vec2.get(0,600,true);
 		this.napeSpace = new nape_space_Space(this.napeGravity);
 		this.napeHand = new nape_constraint_PivotJoint(this.napeSpace.zpp_inner.__static,null,nape_geom_Vec2.get(0,0,true),nape_geom_Vec2.get(0,0,true));
 		this.napeHand.set_active(false);
@@ -341,7 +327,6 @@ Main.prototype = {
 			$r = zpp_$nape_util_ZPP_$Flags.InteractionType_COLLISION;
 			return $r;
 		}(this)),this.topicBallCollisionType,this.topicBallCollisionType,$bind(this,this.topicOnTopicCollision)));
-		this.decorativeBalls = new nape_phys_BodyList();
 		this.topicBalls = new nape_phys_BodyList();
 		if(!this.isFirstRun) this.currentTopic = Main.topicGroups[Std["int"](Math.random() * Main.topicGroups.length)];
 		var _g1 = 0;
@@ -450,46 +435,6 @@ Main.prototype = {
 		}(this))).add(this.wordBallCollisionType);
 		return ball;
 	}
-	,createDecorativeBall: function(size,startX,startY) {
-		var circleContainer;
-		var _this = window.document;
-		circleContainer = _this.createElement("div");
-		circleContainer.className = "ballContainer";
-		circleContainer.style.width = (size == null?"null":"" + size) + "px";
-		circleContainer.style.height = (size == null?"null":"" + size) + "px";
-		if(startX == null) circleContainer.style.left = "null"; else circleContainer.style.left = "" + startX;
-		if(startY == null) circleContainer.style.top = "null"; else circleContainer.style.top = "" + startY;
-		this.div.appendChild(circleContainer);
-		var circle;
-		var _this1 = window.document;
-		circle = _this1.createElement("canvas");
-		circle.width = size;
-		circle.height = size;
-		var theme = ["#000000","#252525","#525252","#737373","#969696","#bdbdbd","#d9d9d9","#f0f0f0","#ffffff"];
-		var ctx = circle.getContext("2d",null);
-		var numCircles = 1 + Std["int"](Math.random() * theme.length);
-		var currentCircle = 0;
-		var size1 = size;
-		var i = size1;
-		while(i > 0) {
-			ctx.fillStyle = theme[currentCircle];
-			ctx.beginPath();
-			ctx.arc(size1 / 2,size1 / 2,i / 2,0,Math.PI * 2);
-			ctx.closePath();
-			ctx.fill();
-			i -= size1 / numCircles | 0;
-			currentCircle++;
-		}
-		circleContainer.appendChild(circle);
-		var ball = this.createNapeBall(size1,startX,startY);
-		((function($this) {
-			var $r;
-			if(ball.zpp_inner_i.userData == null) ball.zpp_inner_i.userData = { };
-			$r = ball.zpp_inner_i.userData;
-			return $r;
-		}(this))).sprite = circleContainer;
-		return ball;
-	}
 	,createInstructions: function(size,startX,startY) {
 		var content = this.createWrappedContent(null);
 		var span = content.childNodes[0];
@@ -530,8 +475,8 @@ Main.prototype = {
 		container.className = "ballContainer";
 		container.style.width = (size == null?"null":"" + size) + "px";
 		container.style.height = (size == null?"null":"" + size) + "px";
-		if(startX == null) container.style.left = "null"; else container.style.left = "" + startX;
-		if(startY == null) container.style.top = "null"; else container.style.top = "" + startY;
+		container.style.left = (startX == null?"null":"" + startX) + "px";
+		container.style.top = (startY == null?"null":"" + startY) + "px";
 		if(useCanvas) {
 			var circle;
 			var _this1 = window.document;
