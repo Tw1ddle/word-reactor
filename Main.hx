@@ -439,6 +439,9 @@ class Main {
 		circleContainer.addEventListener("click", function(e:Dynamic):Void {
 			callback();
 		}, false);
+		circleContainer.addEventListener("touchstart", function(e:Dynamic):Void {
+			callback();
+		}, false);
 		
 		circleContainer.innerHTML = innerHTML;
 		
