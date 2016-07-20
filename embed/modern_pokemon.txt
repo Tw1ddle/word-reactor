@@ -192,7 +192,7 @@ excadrill
 exeggcute
 exeggutor
 exploud
-farfetch'd
+farfetchd
 fearow
 feebas
 fennekin
@@ -431,7 +431,7 @@ natu
 nidoking
 nidoqueen
 nidoran
-nidoran♂
+nidoran
 nidorina
 nidorino
 nincada

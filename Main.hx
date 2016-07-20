@@ -46,16 +46,16 @@ class UserData {
 	public var type:BallType;
 	public var container(default, null):DivElement; // The HTML element that holds the ball text
 	public var text(default, set):String; // The actual text content of the ball
-	public var topic(default, null):String; // The training data category of the data (variable name in the TrainingDatas, not the data itself)
+	public var topic(default, null):Topic; // The training data category of the data (the name corresponds to the variable in the TrainingDatas, not the data itself)
 	
-	public inline function new(container:DivElement, topic:String, ?text:String, type:BallType) {
+	public inline function new(container:DivElement, topic:Topic, ?text:String, type:BallType) {
 		Sure.sure(container != null);
 		Sure.sure(topic != null);
 		
 		this.container = container;
 		
 		if (type == BallType.TOPIC) {
-			this.text = topic;
+			this.text = topic.name;
 		} else {
 			Sure.sure(text != null);
 			this.text = text;
@@ -85,6 +85,15 @@ class GeneratorTriePair {
 	}
 }
 
+class Topic {
+	public var name(default, null):String;
+	public var color(default, null):String;
+	public inline function new(name:String, color:String) {
+		this.name = name;
+		this.color = color;
+	}
+}
+
 class Main {
 	private static inline var GITHUB_URL:String = "https://github.com/Tw1ddle/word-reactor"; // The hosted repository URL
 	private static inline var WEBSITE_URL:String = "http://www.samcodes.co.uk/project/word-reactor/"; // Hosted demo URL
@@ -96,13 +105,13 @@ class Main {
 	private static inline var GRAVITY_STRENGTH:Int = 600; // 600 pixels/units per second
 	
 	// Groups of related word generation topics
-	private static var topicGroups:Array<Array<String>> = [
-		["Original Pokemon", "Animals", "Fish", "Modern Pokemon"],
-		["American Forenames", "Italian Forenames", "Japanese Forenames", "Swedish Forenames", "Tolkienesque Forenames"],
-		["English Towns", "German Towns", "Japanese Cities", "Swiss Cities"]
+	private static var topicGroups:Array<Array<Topic>> = [
+		[new Topic("Original Pokemon", "#333333"), new Topic("Animals", "#666666"), new Topic("Fish", "#999999"), new Topic("Modern Pokemon", "#bbbbbb")],
+		[new Topic("American Forenames", "#ff8000"), new Topic("Italian Forenames", "#ffd933"), new Topic("Japanese Forenames", "#cccc52"), new Topic("Swedish Forenames", "#8fb359"), new Topic("Tolkienesque Forenames", "#129b33")],
+		[new Topic("English Towns", "#8cbeb2"), new Topic("German Towns", "#f3b562"), new Topic("Japanese Cities", "#aa6060"), new Topic("Swiss Cities", "#bb99bf")]
 	];
-	private static var backgroundTappingTopic = "Original Pokemon"; // The topic used to generate balls when tapping the background
-	private var currentTopic:Array<String> = topicGroups[0]; // Default to Pokemon group
+	private static var backgroundTappingTopic = topicGroups[0][0]; // The topic used to generate balls when tapping the background
+	private var currentTopic:Array<Topic> = topicGroups[0]; // Default to Pokemon group
 	
 	private var div:DivElement = cast Browser.document.getElementById(ID.simulation); // The div that contains the whole simulation
 	private var lastAnimationTime:Float = 0.0; // Last time from requestAnimationFrame
@@ -141,6 +150,8 @@ class Main {
 	
 	private inline function onWindowLoaded():Void {
 		generatorMap = new StringMap<GeneratorTriePair>();
+		
+		napeGravity = new Vec2(0, GRAVITY_STRENGTH); // Default to portrait gravity
 		
 		resetSimulation();
 		
@@ -276,19 +287,11 @@ class Main {
 		var screenWidth:Float = Browser.window.innerWidth;
 		var screenHeight:Float = Browser.window.innerHeight;
 		
-		// NOTE somewhat hardcoded pixel values...
-		wordFontSizePixels = Std.int(Math.max(screenWidth * 0.01, 14));
-		wordBallPixelPadding = 20;
-		topicFontSizePixels = Std.int(Math.max(screenWidth * 0.02, 20));
-		topicBallPixelPadding = 30;
-		
-		if (Browser.window.matchMedia("(orientation: portrait)").matches) {
-			napeGravity = Vec2.weak(0, GRAVITY_STRENGTH);
-		} else if (Browser.window.matchMedia("(orientation: landscape)").matches) {
-			napeGravity = Vec2.weak(GRAVITY_STRENGTH, 0);
-		} else {
-			napeGravity = Vec2.weak(0, GRAVITY_STRENGTH);
-		}
+		// NOTE somewhat hardcoded values...
+		wordFontSizePixels = Std.int(Math.max(Math.min(screenWidth, screenHeight) * 0.01, 12));
+		wordBallPixelPadding = wordFontSizePixels * 2;
+		topicFontSizePixels = Std.int(Math.max(Math.min(screenWidth, screenHeight) * 0.015, 16));
+		topicBallPixelPadding = topicFontSizePixels * 2;
 		
 		napeSpace = new Space(napeGravity); // The Nape simulation space
 		napeHand = new PivotJoint(napeSpace.world, null, Vec2.weak(), Vec2.weak());
@@ -318,9 +321,9 @@ class Main {
 		wordBalls = new BodyList();
 		
 		instructionsBall = createInstructions(300, screenWidth * 0.5, screenHeight * 0.5); // NOTE fixed size
-		githubBall = createClickableBall(128, screenWidth * 0.2, screenHeight * 0.1, function() { Browser.window.open(GITHUB_URL); }, '<img src="assets/images/githublogo.png" />');
-		twitterBall = createClickableBall(128, screenWidth * 0.5, screenHeight * 0.1, function() { Browser.window.open(TWITTER_URL); }, '<img src="assets/images/twitterlogo.png" />');
-		resetBall = createClickableBall(128, screenWidth * 0.8, screenHeight * 0.1, function() { resetSimulation(); }, '<img src="assets/images/reseticon.png" />');
+		githubBall = createClickableBall(96, screenWidth * 0.2, screenHeight * 0.1, function() { Browser.window.open(GITHUB_URL); }, '<img src="assets/images/githublogo.png" />');
+		twitterBall = createClickableBall(96, screenWidth * 0.5, screenHeight * 0.1, function() { Browser.window.open(TWITTER_URL); }, '<img src="assets/images/twitterlogo.png" />');
+		resetBall = createClickableBall(96, screenWidth * 0.8, screenHeight * 0.1, function() { resetSimulation(); }, '<img src="assets/images/reseticon.png" />');
 		
 		isPointerDown = false;
 		pointerPosition = new Vec2(0, 0);
@@ -373,12 +376,12 @@ class Main {
 	/**
 	 * Creates a ball that contains a generated word
 	 */
-	private inline function createTopicBall(startX:Float, startY:Float, topic:String):Body {
+	private inline function createTopicBall(startX:Float, startY:Float, topic:Topic):Body {
 		var content = createWrappedContent(topicFontSizePixels);
 		
-		var radius = (topic.length * topicFontSizePixels) * 0.5 + topicBallPixelPadding;
+		var radius = (topic.name.length * topicFontSizePixels) * 0.5 + topicBallPixelPadding;
 		
-		var circleContainer = createVisualBall(radius, startX, startY, content);
+		var circleContainer = createVisualBall(radius, startX, startY, content, topic);
 		div.appendChild(circleContainer);
 		
 		var ball = createNapeBall(radius, startX, startY);
@@ -390,16 +393,16 @@ class Main {
 	/**
 	 * Creates a ball that contains a generated word
 	 */
-	private inline function createWordBall(startX:Float, startY:Float, topic:String):Body {
+	private inline function createWordBall(startX:Float, startY:Float, topic:Topic):Body {
 		var content = createWrappedContent(wordFontSizePixels);
 		
-		var words:Array<String> = Reflect.field(TrainingDatas, topic);
+		var words:Array<String> = Reflect.field(TrainingDatas, topic.name);
 		Sure.sure(words != null);
-		var word = generate(topic);
+		var word = generate(topic.name);
 		
 		var radius = (word.length * wordFontSizePixels) * 0.5  + wordBallPixelPadding;
 		
-		var circleContainer = createVisualBall(radius, startX, startY, content);
+		var circleContainer = createVisualBall(radius, startX, startY, content, topic);
 		div.appendChild(circleContainer);
 		
 		var userData = new UserData(circleContainer, topic, word, BallType.WORD);
@@ -418,7 +421,7 @@ class Main {
 
 		var span = cast content.childNodes[0];
 		span.innerHTML = '<h1>Word Reactor</h1><br/><span style="font-size:15px;"><strong>Instructions:</strong><br/><br/>1. Drag and collide balls.<br/>2. Tap the background.<br/>3. Tap reset ball.<br/>4. Have fun!</span>';
-		var circleContainer = createVisualBall(size, startX, startY, content);
+		var circleContainer = createVisualBall(size, startX, startY, content, currentTopic[0]);
 		div.appendChild(circleContainer);
 		var ball = createNapeBall(size, startX, startY);
 		ball.userData.sprite = circleContainer;
@@ -430,7 +433,7 @@ class Main {
 	 */
 	private inline function createClickableBall(size:Float, startX:Float, startY:Float, callback:Void->Void, innerHTML:String):Body {
 		var content = createWrappedContent();
-		var circleContainer = createVisualBall(size, startX, startY, content, false, null);
+		var circleContainer = createVisualBall(size, startX, startY, content, topicGroups[0][0], false, null);
 		div.appendChild(circleContainer);
 		
 		circleContainer.addEventListener("click", function(e:Dynamic):Void {
@@ -447,7 +450,7 @@ class Main {
 	/**
 	 * Helper function for creating a canvas visual of a Nape ball
 	 */
-	private inline function createVisualBall(size:Float, startX:Float, startY:Float, innerBody:DivElement, useCanvas:Bool = true, ?fillTechnique:CanvasRenderingContext2D->Int->Int->Void):DivElement {
+	private inline function createVisualBall(size:Float, startX:Float, startY:Float, innerBody:DivElement, topic:Topic, useCanvas:Bool = true, ?fillTechnique:CanvasRenderingContext2D->Int->Int->Void):DivElement {
 		var container = Browser.document.createDivElement();
 		container.className = BALL_CONTAINER_CLASSNAME;
 		container.style.width = Std.string(size) + "px";
@@ -463,7 +466,7 @@ class Main {
 			if (fillTechnique != null) {
 				fillTechnique(ctx, Std.int(size), Std.int(size));
 			} else {
-				ctx.fillStyle = "solid";
+				ctx.fillStyle = topic.color;
 				ctx.beginPath();
 				ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
 				ctx.closePath();
