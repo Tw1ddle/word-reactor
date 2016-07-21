@@ -97,7 +97,7 @@ class Topic {
 class Main {
 	private static inline var GITHUB_URL:String = "https://github.com/Tw1ddle/word-reactor"; // The hosted repository URL
 	private static inline var WEBSITE_URL:String = "http://www.samcodes.co.uk/project/word-reactor/"; // Hosted demo URL
-	private static inline var TWITTER_URL:String = "https://twitter.com/Sam_Twidale"; // Project Twitter URL
+	private static inline var TWITTER_URL:String = "https://twitter.com/Sam_Twidale/status/756230840821092352"; // Project Twitter URL
 	public static inline var BALL_CONTAINER_CLASSNAME:String = "ballContainer";
 	public static inline var CONTENT_WRAPPER_CLASSNAME:String = "contentWrapper";
 	public static inline var INNER_CONTENT_CLASSNAME:String = "innerContent";
