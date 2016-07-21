@@ -2,7 +2,7 @@
 
 **Word Reactor** is a Markov chain-based name generator inside a physics simulation. Run it [in the browser](https://tw1ddle.github.io/word-reactor/).
 
-Demonstrates the [Markov Namegen](http://www.samcodes.co.uk/project/markov-namegen/) name generator and Haxe library.
+Demonstrates the [Markov Namegen](http://www.samcodes.co.uk/project/markov-namegen/) name generator and [Haxe](https://haxe.org/) library.
 
 ## Usage ##
 
