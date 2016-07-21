@@ -6,13 +6,9 @@ Demonstrates the [Markov Namegen](http://www.samcodes.co.uk/project/markov-nameg
 
 ## Usage ##
 
-Run the live [demo](https://tw1ddle.github.io/word-reactor/) and generate words. Click the mouse to spawn a stream of words for a random topic:
+Run it [in the browser](https://tw1ddle.github.io/word-reactor/) and generate words. Click or tap empty space to spawn a stream of words for a given topic. Drag the balls around to mix things up, and collide the balls with "topic" words in them to create new words:
 
 [![Screenshot](https://github.com/Tw1ddle/word-reactor/blob/master/screenshots/screenshot2.gif?raw=true "Word Reactor spawning new words")](https://tw1ddle.github.io/word-reactor/)
-
-Collide balls that contain topic words to produce new words. Drag balls around to mix things up:
-
-[![Screenshot](https://github.com/Tw1ddle/word-reactor/blob/master/screenshots/screenshot3.gif?raw=true "Word Reactor dragging the topic balls around")](https://tw1ddle.github.io/word-reactor/)
 
 ## Install ##
 
