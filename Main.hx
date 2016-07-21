@@ -106,12 +106,18 @@ class Main {
 	
 	// Groups of related word generation topics
 	private static var topicGroups:Array<Array<Topic>> = [
-		[new Topic("Original Pokemon", "#333333"), new Topic("Animals", "#666666"), new Topic("Fish", "#999999"), new Topic("Modern Pokemon", "#bbbbbb")],
-		[new Topic("American Forenames", "#ff8000"), new Topic("Italian Forenames", "#ffd933"), new Topic("Japanese Forenames", "#cccc52"), new Topic("Swedish Forenames", "#8fb359"), new Topic("Tolkienesque Forenames", "#129b33")],
-		[new Topic("English Towns", "#8cbeb2"), new Topic("German Towns", "#f3b562"), new Topic("Japanese Cities", "#aa6060"), new Topic("Swiss Cities", "#bb99bf")]
+		[new Topic("American Desserts", "#35203b"), new Topic("British Desserts", "#cf4a30")],
+		[new Topic("Musical Styles", "#28687c"), new Topic("Musical Instruments", "#0f384a")],
+		[new Topic("Clothing", "#16193b"), new Topic("Colours", "#35478c")],
+		[new Topic("Fruit", "#93004f"), new Topic("Meats", "#009f43"), new Topic("Breakfast Cereals", "#000093")],
+		[new Topic("Original Pokemon", "#222222"), new Topic("Animals", "#444444"), new Topic("Modern Pokemon", "#666666")],
+		[new Topic("American Forenames", "#ff8000"), new Topic("Japanese Forenames", "#cccc52"), new Topic("Tolkienesque Forenames", "#129b33")],
+		[new Topic("English Towns", "#8cbeb2"), new Topic("German Towns", "#f3b562"), new Topic("Japanese Cities", "#aa6060")]
 	];
 	private static var backgroundTappingTopic = topicGroups[0][0]; // The topic used to generate balls when tapping the background
-	private var currentTopic:Array<Topic> = topicGroups[0]; // Default to Pokemon group
+	private var currentTopicGroup:Array<Topic>;
+	private var currentTopicGroupCounter:Int = 0; // Counter to facilitate looping through topic groups
+	private var currentTopicCounter:Int; // Counter to facilitate looping through topics
 	
 	private var div:DivElement = cast Browser.document.getElementById(ID.simulation); // The div that contains the whole simulation
 	private var lastAnimationTime:Float = 0.0; // Last time from requestAnimationFrame
@@ -138,8 +144,6 @@ class Main {
 	private var wordBallPixelPadding:Int; // The extra space in addition to the ball text width
 	private var topicBallPixelPadding:Int; // The extra space in addition to the ball text width
 	
-	private var isFirstRun:Bool = true; // Whether this is our first time running, in order to default to the Pokemon preset
-	
 	private static function main():Void {
 		var main = new Main();
 	}
@@ -162,6 +166,11 @@ class Main {
 			pointerPosition.setxy(x, y);
 			var bodies = new BodyList();
 			bodies = napeSpace.bodiesUnderPoint(pointerPosition, null, bodies);
+			
+			if (bodies == null || bodies.length == 0) {
+				backgroundTappingTopic = getNextTopic(); // Change the background spawning topic every time the mouse is pressed down on an empty area
+			}
+			
 			for (body in bodies) {
 				if (body.isDynamic()) {
 					/*
@@ -189,8 +198,6 @@ class Main {
 		var onPointerUp = function():Void {
 			isPointerDown = false;
 			napeHand.active = false;
-			
-			backgroundTappingTopic = currentTopic[Std.int(Math.random() * currentTopic.length)]; // Change the background spawning topic every time the mouse is released
 		};
 		
 		// Setup event listeners
@@ -290,7 +297,7 @@ class Main {
 		// NOTE somewhat hardcoded values...
 		wordFontSizePixels = Std.int(Math.max(Math.min(screenWidth, screenHeight) * 0.01, 12));
 		wordBallPixelPadding = wordFontSizePixels * 2;
-		topicFontSizePixels = Std.int(Math.max(Math.min(screenWidth, screenHeight) * 0.015, 16));
+		topicFontSizePixels = Std.int(Math.max(Math.min(screenWidth, screenHeight) * 0.015, 18));
 		topicBallPixelPadding = topicFontSizePixels * 2;
 		
 		napeSpace = new Space(napeGravity); // The Nape simulation space
@@ -311,11 +318,10 @@ class Main {
 		
 		topicBalls = new BodyList();
 		
-		if (!isFirstRun) {
-			currentTopic = topicGroups[Std.int(Math.random() * topicGroups.length)];
-		}
-		for (i in 0...currentTopic.length) {
-			topicBalls.add(createTopicBall(screenWidth * 0.5, screenHeight * 0.5, currentTopic[i]));
+		currentTopicGroup = getNextTopicGroup();
+		
+		for (i in 0...currentTopicGroup.length) {
+			topicBalls.add(createTopicBall(screenWidth * 0.5, screenHeight * 0.5, currentTopicGroup[i]));
 		}
 		
 		wordBalls = new BodyList();
@@ -327,8 +333,6 @@ class Main {
 		
 		isPointerDown = false;
 		pointerPosition = new Vec2(0, 0);
-		
-		isFirstRun = false;
 	}
 	
 	/**
@@ -421,7 +425,7 @@ class Main {
 
 		var span = cast content.childNodes[0];
 		span.innerHTML = '<h1>Word Reactor</h1><br/><span style="font-size:15px;"><strong>Instructions:</strong><br/><br/>1. Drag and collide balls.<br/>2. Tap the background.<br/>3. Tap reset ball.<br/>4. Have fun!</span>';
-		var circleContainer = createVisualBall(size, startX, startY, content, currentTopic[0]);
+		var circleContainer = createVisualBall(size, startX, startY, content, currentTopicGroup[0]);
 		div.appendChild(circleContainer);
 		var ball = createNapeBall(size, startX, startY);
 		ball.userData.sprite = circleContainer;
@@ -553,5 +557,18 @@ class Main {
 			generatorMap.set(topic, pair);
 		}
 		return pair;
+	}
+	
+	private function getNextTopicGroup():Array<Topic> {
+		currentTopicCounter = 0;
+		var group = topicGroups[currentTopicGroupCounter % (topicGroups.length)];
+		currentTopicGroupCounter++;
+		return group;
+	}
+	
+	private inline function getNextTopic():Topic {
+		currentTopicCounter++;
+		var topic = currentTopicGroup[currentTopicCounter % (currentTopicGroup.length)];
+		return topic;
 	}
 }
