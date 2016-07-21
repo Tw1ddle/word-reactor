@@ -346,7 +346,7 @@ Main.prototype = {
 			window.open("https://github.com/Tw1ddle/word-reactor");
 		},"<img src=\"assets/images/githublogo.png\" />");
 		this.twitterBall = this.createClickableBall(96,screenWidth * 0.5,screenHeight * 0.1,function() {
-			window.open("https://twitter.com/Sam_Twidale");
+			window.open("https://twitter.com/Sam_Twidale/status/756230840821092352");
 		},"<img src=\"assets/images/twitterlogo.png\" />");
 		this.resetBall = this.createClickableBall(96,screenWidth * 0.8,screenHeight * 0.1,function() {
 			_g.resetSimulation();
@@ -57144,7 +57144,7 @@ TrainingDatas.Websites = ["adobe","alibaba","aliexpress","amazon","amazon","appl
 TrainingDatas["Werewolf Forenames"] = ["accalia","adalwolf","adalwolfa","adolpha","adolphus","amaguk","amarog","amoux","amwolf","ardolf","ardwolf","audolf","bardalph","bardolf","beowulf","biryuk","bleddyn","bledig","bleidd","bodolf","botewolf","botolf","botwolf","cana","canagan","chann","chanteloup","conall","conan","cuan","dolph","dolphus","ethelwulf","eyolf","faolan","farkas","felan","fenris","freki","fridolf","friduwulf","geirolf","guadalupe","gunnolf","honiahaka","hrolf","hrolleif","ingolf","ivaylo","landga","leidolf","leloo","lobo","loup","lowell","lupe","luperca","lupo","lupu","lupus","lyall","lykaios","maccon","maengun","maheegan","mahigan","maicoh","maiyun","makoce","mingan","mohegan","nashoba","nuntis","odolf","odwolfe","olcan","onai","phelan","radolf","raff","ralph","rand","randale","randall","randi","randolph","ranulfo","raoul","raul","rendall","reule","rezso","rodolfo","rolf","rudi","rudolph","sandalio","seff","shunkaha","singarti","sirhaan","sköll","susi","tala","tasha","tate","tchono","toralu","udolf","udolph","ujku","ulf","ulfred","ulger","ullok","ulmar","ulmer","ulric","ulvelaik","uwais","varg","velvel","vilkas","vilks","vuk","vukasin","weylyn","wolfgang","wolfram","wolfrik","woolsey","wulfgar","ylva"];
 Main.GITHUB_URL = "https://github.com/Tw1ddle/word-reactor";
 Main.WEBSITE_URL = "http://www.samcodes.co.uk/project/word-reactor/";
-Main.TWITTER_URL = "https://twitter.com/Sam_Twidale";
+Main.TWITTER_URL = "https://twitter.com/Sam_Twidale/status/756230840821092352";
 Main.BALL_CONTAINER_CLASSNAME = "ballContainer";
 Main.CONTENT_WRAPPER_CLASSNAME = "contentWrapper";
 Main.INNER_CONTENT_CLASSNAME = "innerContent";
