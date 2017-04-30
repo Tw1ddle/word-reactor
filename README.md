@@ -2,7 +2,7 @@
 
 [![Build Status](https://img.shields.io/travis/Tw1ddle/word-reactor.svg?style=flat-square)](https://travis-ci.org/Tw1ddle/word-reactor)
 
-**Word Reactor** is a Markov chain-based word generator inside a physics simulation. Run it [in your browser](https://tw1ddle.github.io/word-reactor/).
+**Word Reactor** is a Markov chain-based word generator running inside a physics simulation. Run it [in your browser](https://tw1ddle.github.io/word-reactor/).
 
 Demonstrates the [Markov Namegen](http://www.samcodes.co.uk/project/markov-namegen/) name generator and [Haxe](https://haxe.org/) library.
 
