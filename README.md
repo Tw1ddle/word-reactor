@@ -1,5 +1,6 @@
 [![Project logo](https://github.com/Tw1ddle/word-reactor/blob/master/screenshots/wordreactor_logo.png "Markov Procedural Word Reactor Simulation logo")](https://tw1ddle.github.io/word-reactor/)
 
+[![Build Status Badge](https://ci.appveyor.com/api/projects/status/github/Tw1ddle/word-reactor)](https://ci.appveyor.com/project/Tw1ddle/word-reactor)
 [![License](https://licensebuttons.net/l/by-nc/4.0/80x15.png)](https://github.com/Tw1ddle/word-reactor/blob/master/LICENSE)
 
 **Word Reactor** is a Markov chain-based word generator running inside a physics simulation. Run it [in your browser](https://tw1ddle.github.io/word-reactor/).
@@ -30,7 +31,7 @@ Or add it to your ```Project.xml```:
 
 The [markov-namegen haxelib](https://lib.haxe.org/p/markov-namegen) uses [Markov chains](https://en.wikipedia.org/wiki/Markov_chain) to generate random words. Given a set of words as [training data](https://github.com/Tw1ddle/MarkovNameGenerator/tree/master/embed), the library calculates the conditional probability of a letter coming up after a sequence of letters chosen so far. It looks back up to "n" characters, where "n" is the order of the model.
 
-The physics simulation is made using [Nape](https://github.com/deltaluca/nape), a 2D rigid body physics engine for Haxe. When balls containing topic words collide, balls are added to the simulation that contain new words generated using the training data for those topics.
+The physics simulation is made using [Nape](https://github.com/HaxeFlixel/nape-haxe4), a 2D rigid body physics engine for Haxe. When balls containing topic words collide, balls are added to the simulation that contain new words generated using the training data for those topics.
 
 The visualization is rendered using HTML5 with text, images and canvas elements, using absolute positioning for the balls. This is all kept in sync with the Nape physics simulation in a requestAnimationFrame loop.
 
