@@ -6,6 +6,7 @@ import js.html.CanvasElement;
 import js.html.CanvasRenderingContext2D;
 import js.html.DivElement;
 import markov.namegen.Generator;
+import markov.util.TrainingDataBuilder;
 import markov.util.PrefixTrie;
 import nape.callbacks.CbEvent;
 import nape.callbacks.CbType;
@@ -27,11 +28,11 @@ import nape.space.Space;
 #else
 @:build(CodeCompletion.buildLocalFile("bin/release/index.html"))
 #end
-//@:build(CodeCompletion.buildUrl("http://www.samcodes.co.uk/project/word-reactor/"))
+//@:build(CodeCompletion.buildUrl("https://www.samcodes.co.uk/project/word-reactor/"))
 class ID {}
 
 // Automatically reads training data from files into corresponding static arrays of strings in this class
-@:build(TrainingDataBuilder.build("embed"))
+@:build(markov.util.TrainingDataBuilder.build("embed"))
 @:keep
 class TrainingDatas {}
 
@@ -89,7 +90,7 @@ class Topic {
 	public var name(default, null):String;
 	public var color(default, null):String;
 	public inline function new(name:String, color:String) {
-		this.name = name;
+		this.name = StringTools.replace(name.toLowerCase(), " ", "_");
 		this.color = color;
 	}
 }
@@ -546,7 +547,7 @@ class Main {
 			var data = Reflect.field(TrainingDatas, topic);
 			Sure.sure(data != null);
 			
-			var generator = new Generator(data, 3, 0);
+			var generator = new Generator(data, 3, 0, false);
 			
 			var trie = new PrefixTrie();
 			for (word in data) {

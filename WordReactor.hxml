@@ -1,5 +1,5 @@
 -main Main
 
 -lib markov-namegen
--lib nape
+-lib nape-haxe4
 -lib sure
