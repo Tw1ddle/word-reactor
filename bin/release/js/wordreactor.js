@@ -34,7 +34,7 @@ var ID = function() { };
 ID.__name__ = true;
 var TrainingDatas = function() { };
 TrainingDatas.__name__ = true;
-var UserData = function(container,topic,text,type) {
+var UserData = function(container,topic,text,type,rotationLimitDegrees) {
 	if(container == null) {
 		throw haxe_Exception.thrown("FAIL: container != null");
 	}
@@ -52,6 +52,7 @@ var UserData = function(container,topic,text,type) {
 	}
 	this.topic = topic;
 	this.type = type;
+	this.rotationLimitDegrees = rotationLimitDegrees;
 };
 UserData.__name__ = true;
 UserData.prototype = {
@@ -114,9 +115,9 @@ Main.prototype = {
 		this.lastAnimationTime = 0.0;
 		var screenWidth = window.innerWidth;
 		var screenHeight = window.innerHeight;
-		this.wordFontSizePixels = Math.max(Math.min(screenWidth,screenHeight) * 0.01,12) | 0;
+		this.wordFontSizePixels = Math.max(Math.min(screenWidth,screenHeight) * 0.015,12) | 0;
 		this.wordBallPixelPadding = this.wordFontSizePixels * 2;
-		this.topicFontSizePixels = Math.max(Math.min(screenWidth,screenHeight) * 0.015,18) | 0;
+		this.topicFontSizePixels = Math.max(Math.min(screenWidth,screenHeight) * 0.02,18) | 0;
 		this.topicBallPixelPadding = this.topicFontSizePixels * 2;
 		this.napeSpace = new nape_space_Space(this.napeGravity);
 		var tmp = this.napeSpace.zpp_inner.__static;
@@ -589,7 +590,7 @@ Main.prototype = {
 			if(ball1.zpp_inner_i.userData == null) {
 				ball1.zpp_inner_i.userData = { };
 			}
-			ball1.zpp_inner_i.userData.sprite = new UserData(circleContainer,topic,null,0);
+			ball1.zpp_inner_i.userData.sprite = new UserData(circleContainer,topic,null,0,10 + Math.random() * 35);
 			if(ball1.zpp_inner_i.wrap_cbTypes == null) {
 				ball1.zpp_inner_i.setupcbTypes();
 			}
@@ -1067,9 +1068,9 @@ Main.prototype = {
 			_gthis1.lastAnimationTime = 0.0;
 			var screenWidth = window.innerWidth;
 			var screenHeight = window.innerHeight;
-			_gthis1.wordFontSizePixels = Math.max(Math.min(screenWidth,screenHeight) * 0.01,12) | 0;
+			_gthis1.wordFontSizePixels = Math.max(Math.min(screenWidth,screenHeight) * 0.015,12) | 0;
 			_gthis1.wordBallPixelPadding = _gthis1.wordFontSizePixels * 2;
-			_gthis1.topicFontSizePixels = Math.max(Math.min(screenWidth,screenHeight) * 0.015,18) | 0;
+			_gthis1.topicFontSizePixels = Math.max(Math.min(screenWidth,screenHeight) * 0.02,18) | 0;
 			_gthis1.topicBallPixelPadding = _gthis1.topicFontSizePixels * 2;
 			_gthis1.napeSpace = new nape_space_Space(_gthis1.napeGravity);
 			var _gthis2 = _gthis1.napeSpace.zpp_inner.__static;
@@ -1542,7 +1543,7 @@ Main.prototype = {
 				if(ball1.zpp_inner_i.userData == null) {
 					ball1.zpp_inner_i.userData = { };
 				}
-				ball1.zpp_inner_i.userData.sprite = new UserData(circleContainer,topic,null,0);
+				ball1.zpp_inner_i.userData.sprite = new UserData(circleContainer,topic,null,0,10 + Math.random() * 35);
 				if(ball1.zpp_inner_i.wrap_cbTypes == null) {
 					ball1.zpp_inner_i.setupcbTypes();
 				}
@@ -3083,7 +3084,7 @@ Main.prototype = {
 			container.appendChild(content);
 			var circleContainer = container;
 			this.div.appendChild(circleContainer);
-			var userData = new UserData(circleContainer,topic,word1,1);
+			var userData = new UserData(circleContainer,topic,word1,1,20 + Math.random() * 35);
 			if(zpp_$nape_util_ZPP_$Flags.BodyType_DYNAMIC == null) {
 				zpp_$nape_util_ZPP_$Flags.internal = true;
 				zpp_$nape_util_ZPP_$Flags.BodyType_DYNAMIC = new nape_phys_BodyType();
@@ -3259,10 +3260,14 @@ Main.prototype = {
 			}
 			var y = _this3.zpp_inner.y;
 			var rotation = ball.zpp_inner.rot;
+			if(ball.zpp_inner_i.userData == null) {
+				ball.zpp_inner_i.userData = { };
+			}
+			var rotationLimit = ball.zpp_inner_i.userData.sprite.rotationLimitDegrees;
 			style.left = Std.string(x - (parseFloat(StringTools.replace(style.width,"px","")) / 2 | 0)) + "px";
 			style.top = Std.string(y - (parseFloat(StringTools.replace(style.height,"px","")) / 2 | 0)) + "px";
 			var degrees = rotation * 57.2957795;
-			degrees = degrees < 0 ? Math.max(-33,degrees) : Math.min(33,degrees);
+			degrees = degrees < 0 ? Math.max(-rotationLimit,degrees) : Math.min(rotationLimit,degrees);
 			var transform = "rotate(" + degrees + "deg) translateZ(0)";
 			style.WebkitTransform = transform;
 			style.MozTransform = transform;
@@ -3326,10 +3331,14 @@ Main.prototype = {
 			}
 			var y = _this3.zpp_inner.y;
 			var rotation = ball.zpp_inner.rot;
+			if(ball.zpp_inner_i.userData == null) {
+				ball.zpp_inner_i.userData = { };
+			}
+			var rotationLimit = ball.zpp_inner_i.userData.sprite.rotationLimitDegrees;
 			style.left = Std.string(x - (parseFloat(StringTools.replace(style.width,"px","")) / 2 | 0)) + "px";
 			style.top = Std.string(y - (parseFloat(StringTools.replace(style.height,"px","")) / 2 | 0)) + "px";
 			var degrees = rotation * 57.2957795;
-			degrees = degrees < 0 ? Math.max(-33,degrees) : Math.min(33,degrees);
+			degrees = degrees < 0 ? Math.max(-rotationLimit,degrees) : Math.min(rotationLimit,degrees);
 			var transform = "rotate(" + degrees + "deg) translateZ(0)";
 			style.WebkitTransform = transform;
 			style.MozTransform = transform;
@@ -3368,10 +3377,14 @@ Main.prototype = {
 			}
 			var y = _this.zpp_inner.y;
 			var rotation = ball.zpp_inner.rot;
+			if(ball.zpp_inner_i.userData == null) {
+				ball.zpp_inner_i.userData = { };
+			}
+			var rotationLimit = ball.zpp_inner_i.userData.sprite.rotationLimitDegrees;
 			style.left = Std.string(x - (parseFloat(StringTools.replace(style.width,"px","")) / 2 | 0)) + "px";
 			style.top = Std.string(y - (parseFloat(StringTools.replace(style.height,"px","")) / 2 | 0)) + "px";
 			var degrees = rotation * 57.2957795;
-			degrees = degrees < 0 ? Math.max(-33,degrees) : Math.min(33,degrees);
+			degrees = degrees < 0 ? Math.max(-rotationLimit,degrees) : Math.min(rotationLimit,degrees);
 			var transform = "rotate(" + degrees + "deg) translateZ(0)";
 			style.WebkitTransform = transform;
 			style.MozTransform = transform;
@@ -3410,10 +3423,14 @@ Main.prototype = {
 			}
 			var y = _this.zpp_inner.y;
 			var rotation = ball.zpp_inner.rot;
+			if(ball.zpp_inner_i.userData == null) {
+				ball.zpp_inner_i.userData = { };
+			}
+			var rotationLimit = ball.zpp_inner_i.userData.sprite.rotationLimitDegrees;
 			style.left = Std.string(x - (parseFloat(StringTools.replace(style.width,"px","")) / 2 | 0)) + "px";
 			style.top = Std.string(y - (parseFloat(StringTools.replace(style.height,"px","")) / 2 | 0)) + "px";
 			var degrees = rotation * 57.2957795;
-			degrees = degrees < 0 ? Math.max(-33,degrees) : Math.min(33,degrees);
+			degrees = degrees < 0 ? Math.max(-rotationLimit,degrees) : Math.min(rotationLimit,degrees);
 			var transform = "rotate(" + degrees + "deg) translateZ(0)";
 			style.WebkitTransform = transform;
 			style.MozTransform = transform;
@@ -3452,10 +3469,14 @@ Main.prototype = {
 			}
 			var y = _this.zpp_inner.y;
 			var rotation = ball.zpp_inner.rot;
+			if(ball.zpp_inner_i.userData == null) {
+				ball.zpp_inner_i.userData = { };
+			}
+			var rotationLimit = ball.zpp_inner_i.userData.sprite.rotationLimitDegrees;
 			style.left = Std.string(x - (parseFloat(StringTools.replace(style.width,"px","")) / 2 | 0)) + "px";
 			style.top = Std.string(y - (parseFloat(StringTools.replace(style.height,"px","")) / 2 | 0)) + "px";
 			var degrees = rotation * 57.2957795;
-			degrees = degrees < 0 ? Math.max(-33,degrees) : Math.min(33,degrees);
+			degrees = degrees < 0 ? Math.max(-rotationLimit,degrees) : Math.min(rotationLimit,degrees);
 			var transform = "rotate(" + degrees + "deg) translateZ(0)";
 			style.WebkitTransform = transform;
 			style.MozTransform = transform;
@@ -3494,10 +3515,14 @@ Main.prototype = {
 			}
 			var y = _this.zpp_inner.y;
 			var rotation = ball.zpp_inner.rot;
+			if(ball.zpp_inner_i.userData == null) {
+				ball.zpp_inner_i.userData = { };
+			}
+			var rotationLimit = ball.zpp_inner_i.userData.sprite.rotationLimitDegrees;
 			style.left = Std.string(x - (parseFloat(StringTools.replace(style.width,"px","")) / 2 | 0)) + "px";
 			style.top = Std.string(y - (parseFloat(StringTools.replace(style.height,"px","")) / 2 | 0)) + "px";
 			var degrees = rotation * 57.2957795;
-			degrees = degrees < 0 ? Math.max(-33,degrees) : Math.min(33,degrees);
+			degrees = degrees < 0 ? Math.max(-rotationLimit,degrees) : Math.min(rotationLimit,degrees);
 			var transform = "rotate(" + degrees + "deg) translateZ(0)";
 			style.WebkitTransform = transform;
 			style.MozTransform = transform;
@@ -3513,9 +3538,9 @@ Main.prototype = {
 		this.lastAnimationTime = 0.0;
 		var screenWidth = window.innerWidth;
 		var screenHeight = window.innerHeight;
-		this.wordFontSizePixels = Math.max(Math.min(screenWidth,screenHeight) * 0.01,12) | 0;
+		this.wordFontSizePixels = Math.max(Math.min(screenWidth,screenHeight) * 0.015,12) | 0;
 		this.wordBallPixelPadding = this.wordFontSizePixels * 2;
-		this.topicFontSizePixels = Math.max(Math.min(screenWidth,screenHeight) * 0.015,18) | 0;
+		this.topicFontSizePixels = Math.max(Math.min(screenWidth,screenHeight) * 0.02,18) | 0;
 		this.topicBallPixelPadding = this.topicFontSizePixels * 2;
 		this.napeSpace = new nape_space_Space(this.napeGravity);
 		var tmp = this.napeSpace.zpp_inner.__static;
@@ -3988,7 +4013,7 @@ Main.prototype = {
 			if(ball1.zpp_inner_i.userData == null) {
 				ball1.zpp_inner_i.userData = { };
 			}
-			ball1.zpp_inner_i.userData.sprite = new UserData(circleContainer,topic,null,0);
+			ball1.zpp_inner_i.userData.sprite = new UserData(circleContainer,topic,null,0,10 + Math.random() * 35);
 			if(ball1.zpp_inner_i.wrap_cbTypes == null) {
 				ball1.zpp_inner_i.setupcbTypes();
 			}
@@ -4618,11 +4643,11 @@ Main.prototype = {
 		this.isPointerDown = false;
 		this.pointerPosition = new nape_geom_Vec2(0,0);
 	}
-	,updateBallStyle: function(style,x,y,rotation) {
+	,updateBallStyle: function(style,x,y,rotation,rotationLimit) {
 		style.left = Std.string(x - (parseFloat(StringTools.replace(style.width,"px","")) / 2 | 0)) + "px";
 		style.top = Std.string(y - (parseFloat(StringTools.replace(style.height,"px","")) / 2 | 0)) + "px";
 		var degrees = rotation * 57.2957795;
-		degrees = degrees < 0 ? Math.max(-33,degrees) : Math.min(33,degrees);
+		degrees = degrees < 0 ? Math.max(-rotationLimit,degrees) : Math.min(rotationLimit,degrees);
 		var transform = "rotate(" + degrees + "deg) translateZ(0)";
 		style.WebkitTransform = transform;
 		style.MozTransform = transform;
@@ -4817,7 +4842,7 @@ Main.prototype = {
 		if(ball1.zpp_inner_i.userData == null) {
 			ball1.zpp_inner_i.userData = { };
 		}
-		ball1.zpp_inner_i.userData.sprite = new UserData(circleContainer,topic,null,0);
+		ball1.zpp_inner_i.userData.sprite = new UserData(circleContainer,topic,null,0,10 + Math.random() * 35);
 		if(ball1.zpp_inner_i.wrap_cbTypes == null) {
 			ball1.zpp_inner_i.setupcbTypes();
 		}
@@ -4899,7 +4924,7 @@ Main.prototype = {
 		container.appendChild(content);
 		var circleContainer = container;
 		this.div.appendChild(circleContainer);
-		var userData = new UserData(circleContainer,topic,word1,1);
+		var userData = new UserData(circleContainer,topic,word1,1,20 + Math.random() * 35);
 		if(zpp_$nape_util_ZPP_$Flags.BodyType_DYNAMIC == null) {
 			zpp_$nape_util_ZPP_$Flags.internal = true;
 			zpp_$nape_util_ZPP_$Flags.BodyType_DYNAMIC = new nape_phys_BodyType();
@@ -5550,7 +5575,7 @@ Main.prototype = {
 		container.appendChild(content);
 		var circleContainer = container;
 		this.div.appendChild(circleContainer);
-		var userData = new UserData(circleContainer,topic,word1,1);
+		var userData = new UserData(circleContainer,topic,word1,1,20 + Math.random() * 35);
 		if(zpp_$nape_util_ZPP_$Flags.BodyType_DYNAMIC == null) {
 			zpp_$nape_util_ZPP_$Flags.internal = true;
 			zpp_$nape_util_ZPP_$Flags.BodyType_DYNAMIC = new nape_phys_BodyType();

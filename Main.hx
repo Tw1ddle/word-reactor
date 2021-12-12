@@ -48,8 +48,9 @@ class UserData {
 	public var container(default, null):DivElement; // The HTML element that holds the ball text
 	public var text(default, set):String; // The actual text content of the ball
 	public var topic(default, null):Topic; // The training data category of the data (the name corresponds to the variable in the TrainingDatas, not the data itself)
+	public var rotationLimitDegrees(default, null):Float; // The limit to the rotation of the ball in degrees (to keep the text from being flipped/unreadable)
 	
-	public inline function new(container:DivElement, topic:Topic, ?text:String, type:BallType) {
+	public inline function new(container:DivElement, topic:Topic, ?text:String, type:BallType, rotationLimitDegrees:Float) {
 		Sure.sure(container != null);
 		Sure.sure(topic != null);
 		
@@ -64,6 +65,7 @@ class UserData {
 		
 		this.topic = topic;
 		this.type = type;
+		this.rotationLimitDegrees = rotationLimitDegrees;
 	}
 	
 	private function set_text(text:String):String {
@@ -269,14 +271,14 @@ class Main {
 		}
 		
 		for (ball in wordBalls) {
-			updateBallStyle(ball.userData.sprite.container.style, ball.position.x, ball.position.y, ball.rotation);
+			updateBallStyle(ball.userData.sprite.container.style, ball.position.x, ball.position.y, ball.rotation, ball.userData.sprite.rotationLimitDegrees);
 		}
 		for (ball in topicBalls) {
-			updateBallStyle(ball.userData.sprite.container.style, ball.position.x, ball.position.y, ball.rotation);
+			updateBallStyle(ball.userData.sprite.container.style, ball.position.x, ball.position.y, ball.rotation, ball.userData.sprite.rotationLimitDegrees);
 		}
 		for (ball in [instructionsBall, githubBall, twitterBall, resetBall]) {
 			if(ball != null) {
-				updateBallStyle(ball.userData.sprite.style, ball.position.x, ball.position.y, ball.rotation);
+				updateBallStyle(ball.userData.sprite.style, ball.position.x, ball.position.y, ball.rotation, ball.userData.sprite.rotationLimitDegrees);
 			}
 		}
 		
@@ -296,9 +298,9 @@ class Main {
 		var screenHeight:Float = Browser.window.innerHeight;
 		
 		// NOTE somewhat hardcoded values...
-		wordFontSizePixels = Std.int(Math.max(Math.min(screenWidth, screenHeight) * 0.01, 12));
+		wordFontSizePixels = Std.int(Math.max(Math.min(screenWidth, screenHeight) * 0.015, 12));
 		wordBallPixelPadding = wordFontSizePixels * 2;
-		topicFontSizePixels = Std.int(Math.max(Math.min(screenWidth, screenHeight) * 0.015, 18));
+		topicFontSizePixels = Std.int(Math.max(Math.min(screenWidth, screenHeight) * 0.02, 18));
 		topicBallPixelPadding = topicFontSizePixels * 2;
 		
 		napeSpace = new Space(napeGravity); // The Nape simulation space
@@ -339,11 +341,11 @@ class Main {
 	/**
 	 * Helper function that updates the visual representation of a Nape body
 	 */
-	private inline function updateBallStyle(style:Dynamic, x:Float, y:Float, rotation:Float):Void {
+	private inline function updateBallStyle(style:Dynamic, x:Float, y:Float, rotation:Float, rotationLimit:Float):Void {
 		style.left = Std.string(x - Std.int(Std.parseFloat(StringTools.replace(style.width, "px", "")) / 2)) + "px";
 		style.top = Std.string(y - Std.int(Std.parseFloat(StringTools.replace(style.height, "px", "")) / 2)) + "px";
 		var degrees = rotation * 57.2957795;
-		degrees = degrees < 0 ? Math.max(-33, degrees) : Math.min(33, degrees); 
+		degrees = degrees < 0 ? Math.max(-rotationLimit, degrees) : Math.min(rotationLimit, degrees); 
 		var transform = 'rotate(' + degrees + 'deg) translateZ(0)'; // NOTE could limit this to avoid the balls fully flipping and being hard to read. Or possibly instead, tween the text on inactive bodies back to a readable position?
 		style.WebkitTransform = transform;
 		style.MozTransform = transform;
@@ -392,7 +394,7 @@ class Main {
 		div.appendChild(circleContainer);
 		
 		var ball = createNapeBall(radius, startX, startY);
-		ball.userData.sprite = new UserData(circleContainer, topic, BallType.TOPIC);
+		ball.userData.sprite = new UserData(circleContainer, topic, BallType.TOPIC, 10 + Math.random() * 35);
 		ball.cbTypes.add(topicBallCollisionType);
 		return ball;
 	}
@@ -412,7 +414,7 @@ class Main {
 		var circleContainer = createVisualBall(radius, startX, startY, content, topic);
 		div.appendChild(circleContainer);
 		
-		var userData = new UserData(circleContainer, topic, word, BallType.WORD);
+		var userData = new UserData(circleContainer, topic, word, BallType.WORD, 20 + Math.random() * 35);
 		
 		var ball = createNapeBall(radius, startX, startY);
 		ball.userData.sprite = userData;
