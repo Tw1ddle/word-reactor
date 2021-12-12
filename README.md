@@ -1,7 +1,7 @@
 [![Project logo](https://github.com/Tw1ddle/word-reactor/blob/master/screenshots/wordreactor_logo.png "Markov Procedural Word Reactor Simulation logo")](https://tw1ddle.github.io/word-reactor/)
 
-[![Build Status Badge](https://ci.appveyor.com/api/projects/status/github/Tw1ddle/word-reactor)](https://ci.appveyor.com/project/Tw1ddle/word-reactor)
 [![License](https://licensebuttons.net/l/by-nc/4.0/80x15.png)](https://github.com/Tw1ddle/word-reactor/blob/master/LICENSE)
+[![Build Status Badge](https://ci.appveyor.com/api/projects/status/github/Tw1ddle/word-reactor)](https://ci.appveyor.com/project/Tw1ddle/word-reactor)
 
 **Word Reactor** is a Markov chain-based word generator running inside a physics simulation. Run it [in your browser](https://tw1ddle.github.io/word-reactor/).
 
