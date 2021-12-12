@@ -56,7 +56,7 @@ class UserData {
 		this.container = container;
 		
 		if (type == BallType.TOPIC) {
-			this.text = topic.name;
+			this.text = StringTools.replace(topic.name, "_", " ");
 		} else {
 			Sure.sure(text != null);
 			this.text = text;
@@ -97,7 +97,7 @@ class Topic {
 
 class Main {
 	private static inline var GITHUB_URL:String = "https://github.com/Tw1ddle/word-reactor"; // The hosted repository URL
-	private static inline var WEBSITE_URL:String = "http://www.samcodes.co.uk/project/word-reactor/"; // Hosted demo URL
+	private static inline var WEBSITE_URL:String = "https://www.samcodes.co.uk/project/word-reactor/"; // Hosted demo URL
 	private static inline var TWITTER_URL:String = "https://twitter.com/Sam_Twidale/status/756230840821092352"; // Project Twitter URL
 	public static inline var BALL_CONTAINER_CLASSNAME:String = "ballContainer";
 	public static inline var CONTENT_WRAPPER_CLASSNAME:String = "contentWrapper";
@@ -342,7 +342,9 @@ class Main {
 	private inline function updateBallStyle(style:Dynamic, x:Float, y:Float, rotation:Float):Void {
 		style.left = Std.string(x - Std.int(Std.parseFloat(StringTools.replace(style.width, "px", "")) / 2)) + "px";
 		style.top = Std.string(y - Std.int(Std.parseFloat(StringTools.replace(style.height, "px", "")) / 2)) + "px";
-		var transform = 'rotate(' + rotation * 57.2957795 + 'deg) translateZ(0)'; // NOTE could limit this to avoid the balls fully flipping and being hard to read. Or possibly instead, tween the text on inactive bodies back to a readable position?
+		var degrees = rotation * 57.2957795;
+		degrees = degrees < 0 ? Math.max(-33, degrees) : Math.min(33, degrees); 
+		var transform = 'rotate(' + degrees + 'deg) translateZ(0)'; // NOTE could limit this to avoid the balls fully flipping and being hard to read. Or possibly instead, tween the text on inactive bodies back to a readable position?
 		style.WebkitTransform = transform;
 		style.MozTransform = transform;
 		style.OTransform = transform;
