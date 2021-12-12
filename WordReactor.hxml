@@ -3,3 +3,10 @@
 -lib markov-namegen
 -lib nape-haxe4
 -lib sure
+
+# Enable full dead code elimination
+-dce full
+
+--no-traces
+
+-js bin/release/js/wordreactor.js

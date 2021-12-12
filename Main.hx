@@ -24,9 +24,9 @@ import nape.space.Space;
 
 // Automatic HTML code completion, you need to point these to your debug/release HTML
 #if debug
-@:build(CodeCompletion.buildLocalFile("bin/debug/index.html"))
+@:build(CodeCompletion.buildLocalFile("bin/index.html"))
 #else
-@:build(CodeCompletion.buildLocalFile("bin/release/index.html"))
+@:build(CodeCompletion.buildLocalFile("bin/index.html"))
 #end
 //@:build(CodeCompletion.buildUrl("https://www.samcodes.co.uk/project/word-reactor/"))
 class ID {}
